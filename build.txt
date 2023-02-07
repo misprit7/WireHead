@@ -1,0 +1,3 @@
+displayName = Binary Loader
+author = misprit7
+version = 0.1
