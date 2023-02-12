@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Terraria.ModLoader;
 
-namespace binary_loader.Commands
+namespace WiringUtils.Commands
 {
     internal class TriggerShared
     {
@@ -55,6 +55,10 @@ namespace binary_loader.Commands
         // dummy: trigger 3965 1100
         // clk: trigger 3969 1114
         // reset: trigger 3966 1112
+        // zero db: trigger 4011 1182
+        // zero mem: trigger 3962 1330
+        // bin read C:\s\o
+        // bin write C:\s\i
         public class TriggerCommandServer : ModCommand
         {
             public override CommandType Type => CommandType.Console;

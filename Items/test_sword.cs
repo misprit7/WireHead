@@ -2,7 +2,7 @@ using Terraria;
 using Terraria.ID;
 using Terraria.ModLoader;
 
-namespace binary_loader.Items
+namespace WiringUtils.Items
 {
 	public class test_sword : ModItem
 	{

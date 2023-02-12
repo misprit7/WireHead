@@ -8,7 +8,7 @@ using Terraria.DataStructures;
 using Terraria.GameContent.Tile_Entities;
 using Terraria;
 
-namespace binary_loader.Commands
+namespace WiringUtils.Commands
 {
     public class InitCommand : ModCommand
     {
