@@ -16,13 +16,14 @@ namespace binary_loader.Commands
                 throw new UsageException("Wrong number of arguments");
             try
             {
+                
                 int x = int.Parse(args[0]);
                 int y = int.Parse(args[1]);
                 Terraria.Wiring.TripWire(x, y, 1, 1);
             }
             catch
             {
-                throw new UsageException("Wrong number of arguments");
+                throw new UsageException("Failed to parse arguments");
             }
         }
     }
@@ -51,6 +52,9 @@ namespace binary_loader.Commands
             }
         }
 
+        // dummy: trigger 3965 1100
+        // clk: trigger 3969 1114
+        // reset: trigger 3966 1112
         public class TriggerCommandServer : ModCommand
         {
             public override CommandType Type => CommandType.Console;
