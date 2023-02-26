@@ -14,8 +14,8 @@ namespace WiringUtils.Commands
         private static int offsetY, cellWidthY, cellGapY, cellsY, bankGapY, banksY;
 
         private static Regex configPattern = new(@"(?<offset>\d+)\+(?<cell_width>\d+)g(?<cell_gap>\d+)x(?<cells>\d+)g(?<bank_gap>\d+)x(?<banks>\d+)");
-        private static string configX = "814+2g3x1024g3361x2";
-        private static string configY = "1377+1g4x32g0x1";
+        private static string configX = "46+2g3x1024g3185x2";
+        private static string configY = "421+1g4x32g156x12";
 
         private static void PrintSuccess(string msg)
         {
@@ -136,8 +136,8 @@ namespace WiringUtils.Commands
 
             switch (args[0])
             {
-                case "configX": configX = args[1]; break;
-                case "configY": configY = args[1]; break;
+                case "configx": configX = args[1]; break;
+                case "configy": configY = args[1]; break;
                 case "config": configX = args[1]; configY = args[2]; break;
                 case "write": Write(args[1]); break;
                 case "read": Read(args[1]); break;
