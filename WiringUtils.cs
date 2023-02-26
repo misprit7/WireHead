@@ -18,6 +18,11 @@ namespace WiringUtils
         public override void Load()
         {
             base.Load();
+            
+            WorldFile.OnWorldLoad += Accelerator.Preprocess;
+
+            On.Terraria.Wiring.TripWire += Accelerator.TripWire;
+
             On.Terraria.Netplay.UpdateConnectedClients += UpdateConnectedClients;
         }
     }
