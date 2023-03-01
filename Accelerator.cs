@@ -61,7 +61,7 @@ namespace WiringUtils
         // Purposefully excludes multi-block toggleable tiles like fireplaces
         public static readonly HashSet<int> triggeredIDs = new HashSet<int>
         {
-            TileID.LogicGate, // treated specially
+            TileID.LogicGateLamp, // treated specially
             TileID.ClosedDoor,
             TileID.OpenDoor,
             TileID.TrapdoorClosed,
@@ -97,7 +97,7 @@ namespace WiringUtils
         // Also no actuators since they might result in multiple triggers on one tile
         public static readonly HashSet<int> toggleableIDs = new HashSet<int>
         {
-            TileID.LogicGate, // treated specially
+            TileID.LogicGateLamp, // treated specially
             TileID.Candles,
             TileID.Torches,
             TileID.WireBulb,
@@ -322,6 +322,60 @@ namespace WiringUtils
             WiringWrapper._wireSkip.Clear();
         }
 
+        private static bool ShouldChange(int x, int y)
+        {
+            // oldVal is value before last sync, newVal is current value
+            // We need to do it this way, otherwise we have to know how to individually toggle
+            // each individual type of toggleable tile, most of which are sprite dependent (which
+            // on a related note is really dumb, you shouldn't have to check tile.TileFrameX == 66
+            // or whatever to see that a torch is on) 
+            bool oldVal = false, newVal = false;
+            foreach (Color c in Colors)
+            {
+                int colorGroup = wireGroup[c][x, y];
+                if (colorGroup != -1 && groupState.ContainsKey(colorGroup))
+                {
+                    // Here != is used as logical xor
+                    newVal = (newVal != groupState[colorGroup]);
+                    if (groupsOutOfSync.ContainsKey(colorGroup))
+                    {
+                        oldVal = (oldVal != groupsOutOfSync[colorGroup]);
+                    }
+                    else
+                    {
+                        oldVal = (oldVal != groupState[colorGroup]);
+                    }
+                }
+            }
+            return oldVal != newVal;
+        }
+
+        public static void CheckFaultyGate(int X, int faultyY)
+        {
+            int lampY = faultyY + 1;
+            int gateY = faultyY + 2;
+            bool on = Main.tile[X, lampY].TileFrameX == 18;
+            // boolean xor
+            on = (on != ShouldChange(X, lampY));
+
+            // From decompiled, not sure if this is needed
+            WiringWrapper.SkipWire(X, gateY);
+
+            if (on)
+            {
+                WiringWrapper._GatesDone.TryGetValue(new Point16(X, gateY), out bool alreadyDone);
+                if (alreadyDone)
+                {
+                    // Taken from decompiled
+                    Vector2 position = new Vector2(X, gateY) * 16f - new Vector2(10f);
+                    Utils.PoofOfSmoke(position);
+                    NetMessage.SendData(106, -1, -1, null, (int)position.X, position.Y);
+                    return;
+                }
+                WiringWrapper._GatesNext.Enqueue(new Point16(X, gateY));
+            }
+        }
+
         /*
          * Brings back into sync after running efficiently
          */
@@ -336,29 +390,8 @@ namespace WiringUtils
                     if (lampsVisited.Contains(toggleablePoint)) continue;
 
                     lampsVisited.Add(toggleablePoint);
-                    // oldVal is value before last sync, newVal is current value
-                    // We need to do it this way, otherwise we have to know how to individually toggle
-                    // each individual type of toggleable tile, most of which are sprite dependent (which
-                    // on a related note is really dumb, you shouldn't have to check tile.TileFrameX == 66
-                    // or whatever to see that a torch is on) 
-                    bool oldVal = false, newVal = false;
-                    foreach (Color c in Colors)
-                    {
-                        int colorGroup = wireGroup[c][toggleablePoint.X, toggleablePoint.Y];
-                        if (colorGroup != -1)
-                        {
-                            // Here != is used as logical xor
-                            newVal = newVal != groupState[colorGroup];
-                            if (groupsOutOfSync.ContainsKey(colorGroup))
-                            {
-                                oldVal = oldVal != groupsOutOfSync[colorGroup];
-                            } else
-                            {
-                                oldVal = oldVal != groupState[colorGroup];
-                            }
-                        }
-                    }
-                    if (oldVal != newVal)
+                    
+                    if (ShouldChange(toggleablePoint.X, toggleablePoint.Y))
                     {
                         HitWireSingle(toggleablePoint);
                     }

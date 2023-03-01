@@ -632,117 +632,132 @@ namespace Terraria
             if (!WorldGen.InWorld(lampX, lampY, 1))
                 return;
 
-            int num = lampY;
-            Tile tile;
+            int gateY = lampY;
+            Tile gateTile;
+
             while (true)
             {
-                if (num < Main.maxTilesY)
+                if (gateY < Main.maxTilesY)
                 {
-                    tile = Main.tile[lampX, num];
-                    if (!tile.IsActuated)
+                    gateTile = Main.tile[lampX, gateY];
+                    if (gateTile.IsActuated)
                         return;
 
-                    if (tile.TileType == 420)
+                    if (gateTile.TileType == 420)
                         break;
 
-                    if (tile.TileType != 419)
+                    if (gateTile.TileType != 419)
                         return;
 
-                    num++;
+                    gateY++;
                     continue;
                 }
 
                 return;
             }
 
-            _GatesDone.TryGetValue(new Point16(lampX, num), out bool value);
-            int num2 = tile.TileFrameY / 18;
-            bool flag = tile.TileFrameX == 18;
-            bool flag2 = tile.TileFrameX == 36;
-            if (num2 < 0)
+            /*
+             * Custom addition with optimized faulty logic gate handling
+             */
+            if (lampY + 2 < Main.maxTilesY &&
+                Main.tile[lampX, lampY].TileFrameX == 36 &&
+                Main.tile[lampX, lampY + 1].TileType == TileID.LogicGateLamp &&
+                Main.tile[lampX, lampY + 1].TileFrameX != 36 &&
+                Main.tile[lampX, lampY + 2].TileType == TileID.LogicGate &&
+                Main.tile[lampX, lampY + 2].TileFrameX == 36)
+            {
+                Accelerator.CheckFaultyGate(lampX, lampY);
+                return;
+            }
+
+            _GatesDone.TryGetValue(new Point16(lampX, gateY), out bool value);
+            int gateType = gateTile.TileFrameY / 18;
+            bool gateOn = gateTile.TileFrameX == 18;
+            bool gateFaulty = gateTile.TileFrameX == 36;
+            if (gateType < 0)
                 return;
 
-            int num3 = 0;
-            int num4 = 0;
-            bool flag3 = false;
-            for (int num5 = num - 1; num5 > 0; num5--)
+            int numLamps = 0;
+            int numOn = 0;
+            bool lampFaulty = false;
+            for (int lampIterBack = gateY - 1; lampIterBack > 0; lampIterBack--)
             {
-                Tile tile2 = Main.tile[lampX, num5];
-                if (!tile2.IsActuated || tile2.TileType != 419)
+                Tile curLamp = Main.tile[lampX, lampIterBack];
+                if (curLamp.IsActuated || curLamp.TileType != 419)
                     break;
 
-                if (tile2.TileFrameX == 36)
+                if (curLamp.TileFrameX == 36)
                 {
-                    flag3 = true;
+                    lampFaulty = true;
                     break;
                 }
 
-                num3++;
-                num4 += (tile2.TileFrameX == 18).ToInt();
+                numLamps++;
+                numOn += (curLamp.TileFrameX == 18).ToInt();
             }
 
-            bool flag4 = false;
-            switch (num2)
+            bool conditionFulfilled = false;
+            switch (gateType)
             {
                 default:
                     return;
                 case 0:
-                    flag4 = (num3 == num4);
+                    conditionFulfilled = (numLamps == numOn);
                     break;
                 case 2:
-                    flag4 = (num3 != num4);
+                    conditionFulfilled = (numLamps != numOn);
                     break;
                 case 1:
-                    flag4 = (num4 > 0);
+                    conditionFulfilled = (numOn > 0);
                     break;
                 case 3:
-                    flag4 = (num4 == 0);
+                    conditionFulfilled = (numOn == 0);
                     break;
                 case 4:
-                    flag4 = (num4 == 1);
+                    conditionFulfilled = (numOn == 1);
                     break;
                 case 5:
-                    flag4 = (num4 != 1);
+                    conditionFulfilled = (numOn != 1);
                     break;
             }
 
-            bool flag5 = !flag3 && flag2;
-            bool flag6 = false;
-            if (flag3 && Framing.GetTileSafely(lampX, lampY).TileFrameX == 36)
-                flag6 = true;
+            bool faultyStateWrong = !lampFaulty && gateFaulty;
+            bool faultyLampTriggered = false;
+            if (lampFaulty && Framing.GetTileSafely(lampX, lampY).TileFrameX == 36)
+                faultyLampTriggered = true;
 
-            if (!(flag4 != flag || flag5 || flag6))
+            if (!(conditionFulfilled != gateOn || faultyStateWrong || faultyLampTriggered))
                 return;
 
-            _ = tile.TileFrameX % 18 / 18;
-            tile.TileFrameX = (short)(18 * flag4.ToInt());
-            if (flag3)
-                tile.TileFrameX = 36;
+            _ = gateTile.TileFrameX % 18 / 18;
+            gateTile.TileFrameX = (short)(18 * conditionFulfilled.ToInt());
+            if (lampFaulty)
+                gateTile.TileFrameX = 36;
 
-            SkipWire(lampX, num);
-            WorldGen.SquareTileFrame(lampX, num);
-            NetMessage.SendTileSquare(-1, lampX, num);
-            bool flag7 = !flag3 || flag6;
-            if (flag6)
+            SkipWire(lampX, gateY);
+            WorldGen.SquareTileFrame(lampX, gateY);
+            NetMessage.SendTileSquare(-1, lampX, gateY);
+            bool flag7 = !lampFaulty || faultyLampTriggered;
+            if (faultyLampTriggered)
             {
-                if (num4 == 0 || num3 == 0)
+                if (numOn == 0 || numLamps == 0)
                     flag7 = false;
 
-                flag7 = (Main.rand.NextFloat() < (float)num4 / (float)num3);
+                flag7 = (Main.rand.NextFloat() < (float)numOn / (float)numLamps);
             }
 
-            if (flag5)
+            if (faultyStateWrong)
                 flag7 = false;
 
             if (flag7)
             {
                 if (!value)
                 {
-                    _GatesNext.Enqueue(new Point16(lampX, num));
+                    _GatesNext.Enqueue(new Point16(lampX, gateY));
                     return;
                 }
 
-                Vector2 position = new Vector2(lampX, num) * 16f - new Vector2(10f);
+                Vector2 position = new Vector2(lampX, gateY) * 16f - new Vector2(10f);
                 Utils.PoofOfSmoke(position);
                 NetMessage.SendData(106, -1, -1, null, (int)position.X, position.Y);
             }
