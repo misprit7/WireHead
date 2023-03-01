@@ -21,14 +21,17 @@ namespace WiringUtils
     {
         // Which group each tile belongs to
         // -1 is no group, 0 is junction box with two groups
-        internal static Dictionary<Color, int[,]> wireGroup;
+        private static Dictionary<Color, int[,]> wireGroup;
         // Copy of which wires are at each tile in a more usable form
-        internal static Color[,] wireCache;
+        private static Color[,] wireCache;
         // Set of lamps/faultylamps attached to each point
-        internal static Dictionary<int, HashSet<Point16>> toggleable;
+        private static Dictionary<int, HashSet<Point16>> toggleable;
         internal static Dictionary<int, HashSet<Point16>> triggerable;
         // True, and if so state is whether wire is on or not, not present if faulty logic gate present
-        internal static Dictionary<int, bool> groupState;
+        private static Dictionary<int, bool> groupState;
+        // Groups that are out of sync with the world, value is original state of group
+        private static Dictionary<int, bool> groupsOutOfSync;
+        
 
 
 
@@ -42,6 +45,10 @@ namespace WiringUtils
             Blue = 4,
             Red = 8,
         }
+        public static readonly HashSet<Color> Colors = new HashSet<Color>
+        {
+            Color.Yellow, Color.Green, Color.Blue, Color.Red,
+        };
 
         public static readonly Dictionary<int, Color> intToColor = new Dictionary<int, Color>
         {
@@ -107,6 +114,9 @@ namespace WiringUtils
             TileID.AmberGemspark,
         };
 
+        /*
+         * Preprocess the world into logical wire groups to speed up processing
+         */
         public static void Preprocess()
         {
             wireGroup = new Dictionary<Color, int[,]>();
@@ -114,8 +124,9 @@ namespace WiringUtils
             triggerable = new Dictionary<int, HashSet<Point16>>();
             groupState = new Dictionary<int, bool>();
             wireCache = new Color[Main.maxTilesX, Main.maxTilesY];
+            groupsOutOfSync = new Dictionary<int, bool>();
 
-            foreach (Color c in Enum.GetValues(typeof(Color)))
+            foreach (Color c in Colors)
             {
                 wireGroup[c] = new int[Main.maxTilesX, Main.maxTilesY];
                 for (int x = 0; x < Main.maxTilesX; x++)
@@ -158,6 +169,9 @@ namespace WiringUtils
             }
         }
 
+        /*
+         * Register a tile as part of a group
+         */
         private static void RegisterTile(int x, int y, Color c, int group)
         {
             Tile tile = Main.tile[x, y];
@@ -199,6 +213,9 @@ namespace WiringUtils
             }
         }
 
+        /*
+         * Find each of the wire groups in the world recursively, used for preprocessing
+         */
         private static void FindGroup(int x, int y, int prevX, int prevY, Color c, int group)
         {
             if(!WorldGen.InWorld(x, y, 1)) return;
@@ -251,6 +268,9 @@ namespace WiringUtils
             }
         }
 
+        /*
+         * Hit a single wire
+         */
         private static void HitWireSingle(Point16 p)
         {
             // _wireSkip should 100% be a hashset, come on relogic
@@ -258,6 +278,9 @@ namespace WiringUtils
             WiringWrapper.HitWireSingle(p.X, p.Y);
         }
 
+        /*
+         * Triggers a set of wires of a particular type
+         */
         public static void HitWire(DoubleStack<Point16> next, int wireType)
         {
             Color c = intToColor[wireType];
@@ -273,8 +296,11 @@ namespace WiringUtils
                 
                 if (group == -1) continue;
 
-                if (groupState.ContainsKey(group) && false)
+                if (groupState.ContainsKey(group))
                 {
+                    // Keep track of syncing
+                    if (!groupsOutOfSync.ContainsKey(group))
+                        groupsOutOfSync[group] = groupState[group];
                     // If all toggleable then no need to directly trigger them
                     groupState[group] = !groupState[group];
                 }
@@ -294,6 +320,51 @@ namespace WiringUtils
             WiringWrapper.running = false;
             Wiring.running = false;
             WiringWrapper._wireSkip.Clear();
+        }
+
+        /*
+         * Brings back into sync after running efficiently
+         */
+        public static void BringInSync()
+        {
+            HashSet<Point16> lampsVisited = new HashSet<Point16>();
+
+            foreach (var (group, state) in groupsOutOfSync)
+            {
+                foreach (Point16 toggleablePoint in toggleable[group])
+                {
+                    if (lampsVisited.Contains(toggleablePoint)) continue;
+
+                    lampsVisited.Add(toggleablePoint);
+                    // oldVal is value before last sync, newVal is current value
+                    // We need to do it this way, otherwise we have to know how to individually toggle
+                    // each individual type of toggleable tile, most of which are sprite dependent (which
+                    // on a related note is really dumb, you shouldn't have to check tile.TileFrameX == 66
+                    // or whatever to see that a torch is on) 
+                    bool oldVal = false, newVal = false;
+                    foreach (Color c in Colors)
+                    {
+                        int colorGroup = wireGroup[c][toggleablePoint.X, toggleablePoint.Y];
+                        if (colorGroup != -1)
+                        {
+                            // Here != is used as logical xor
+                            newVal = newVal != groupState[colorGroup];
+                            if (groupsOutOfSync.ContainsKey(colorGroup))
+                            {
+                                oldVal = oldVal != groupsOutOfSync[colorGroup];
+                            } else
+                            {
+                                oldVal = oldVal != groupState[colorGroup];
+                            }
+                        }
+                    }
+                    if (oldVal != newVal)
+                    {
+                        HitWireSingle(toggleablePoint);
+                    }
+                }
+            }
+            groupsOutOfSync.Clear();
         }
     }
 }

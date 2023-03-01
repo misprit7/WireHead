@@ -14,8 +14,16 @@ namespace WiringUtils.Commands
         {
             switch(args[0])
             {
-                case "preprocess": Accelerator.Preprocess(); break;
-                default: throw new UsageException("cmd not recognized");
+                case "preprocess":
+                case "p":
+                    Accelerator.Preprocess();
+                    break;
+                case "sync":
+                case "s":
+                    Accelerator.BringInSync();
+                    break;
+                default:
+                    throw new UsageException("cmd not recognized");
             }
         }
     }

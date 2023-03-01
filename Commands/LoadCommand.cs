@@ -136,12 +136,29 @@ namespace WiringUtils.Commands
 
             switch (args[0])
             {
-                case "configx": configX = args[1]; break;
-                case "configy": configY = args[1]; break;
-                case "config": configX = args[1]; configY = args[2]; break;
-                case "write": Write(args[1]); break;
-                case "read": Read(args[1]); break;
-                default: throw new UsageException("cmd not recognized");
+                case "configx":
+                case "cx":
+                    configX = args[1];
+                    break;
+                case "configy":
+                case "cy":
+                    configY = args[1];
+                    break;
+                case "config":
+                case "c":
+                    configX = args[1];
+                    configY = args[2];
+                    break;
+                case "write":
+                case "w":
+                    Write(args[1]);
+                    break;
+                case "read":
+                case "r":
+                    Read(args[1]);
+                    break;
+                default:
+                    throw new UsageException("cmd not recognized");
             }
         }
     }
