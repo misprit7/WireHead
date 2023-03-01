@@ -1,1 +1,1 @@
-Binary Loader is a pretty cool mod, it does...this. Modify this file with a description of your mod.
+A mod to accelerate wiring and provide command line interface for reading/writing to game

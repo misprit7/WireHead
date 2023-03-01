@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -10,18 +11,28 @@ using Terraria;
 using Terraria.DataStructures;
 using Terraria.Enums;
 using Terraria.ID;
+using Terraria.ModLoader;
 
 namespace WiringUtils
 {
     // This is heavily based off of https://github.com/RussDev7/WireShark
     // There are some questionable software engineering choices made there though so I wanted to rewrite it
-    internal class Accelerator
+    internal static class Accelerator
     {
+        // Which group each tile belongs to
+        // -1 is no group, 0 is junction box with two groups
         internal static Dictionary<Color, int[,]> wireGroup;
+        // Copy of which wires are at each tile in a more usable form
         internal static Color[,] wireCache;
-        internal static Dictionary<int, Point16> lamps;
-        internal static Dictionary<int, Point16> faulty_lamps;
+        // Set of lamps/faultylamps attached to each point
+        internal static Dictionary<int, HashSet<Point16>> toggleable;
+        internal static Dictionary<int, HashSet<Point16>> triggerable;
+        // True, and if so state is whether wire is on or not, not present if faulty logic gate present
+        internal static Dictionary<int, bool> groupState;
 
+
+
+        // const data
         [Flags]
         public enum Color
         {
@@ -31,9 +42,79 @@ namespace WiringUtils
             Blue = 4,
             Red = 8,
         }
+
+        public static readonly Dictionary<int, Color> intToColor = new Dictionary<int, Color>
+        {
+            { 1, Color.Red },
+            { 2, Color.Blue },
+            { 3, Color.Green },
+            { 4, Color.Yellow },
+        };
+
+        // Purposefully excludes multi-block toggleable tiles like fireplaces
+        public static readonly HashSet<int> triggeredIDs = new HashSet<int>
+        {
+            TileID.LogicGate, // treated specially
+            TileID.ClosedDoor,
+            TileID.OpenDoor,
+            TileID.TrapdoorClosed,
+            TileID.TrapdoorOpen,
+            TileID.TallGateClosed,
+            TileID.TallGateOpen,
+            TileID.InletPump,
+            TileID.OutletPump,
+            TileID.Traps,
+            TileID.GeyserTrap,
+            TileID.Explosives,
+            TileID.VolcanoLarge,
+            TileID.VolcanoSmall,
+            TileID.Toilets,
+            TileID.Cannon,
+            TileID.MusicBoxes,
+            TileID.Statues,
+            TileID.Chimney,
+            TileID.Teleporter,
+            TileID.Firework,
+            TileID.FireworkFountain,
+            TileID.FireworksBox,
+            TileID.Confetti,
+            TileID.BubbleMachine,
+            TileID.SillyBalloonMachine,
+            TileID.LandMine,
+            TileID.Campfire,
+            TileID.AnnouncementBox,
+            TileID.FogMachine,
+        };
+
+        // Purposefully excludes multi-block toggleable tiles like fireplaces
+        // Also no actuators since they might result in multiple triggers on one tile
+        public static readonly HashSet<int> toggleableIDs = new HashSet<int>
+        {
+            TileID.LogicGate, // treated specially
+            TileID.Candles,
+            TileID.Torches,
+            TileID.WireBulb,
+            TileID.Timers,
+            TileID.ActiveStoneBlock,
+            TileID.InactiveStoneBlock,
+            TileID.Grate,
+            TileID.AmethystGemspark,
+            TileID.TopazGemspark,
+            TileID.SapphireGemspark,
+            TileID.EmeraldGemspark,
+            TileID.RubyGemspark,
+            TileID.DiamondGemspark,
+            TileID.AmberGemspark,
+        };
+
         public static void Preprocess()
         {
-            
+            wireGroup = new Dictionary<Color, int[,]>();
+            toggleable = new Dictionary<int, HashSet<Point16>>();
+            triggerable = new Dictionary<int, HashSet<Point16>>();
+            groupState = new Dictionary<int, bool>();
+            wireCache = new Color[Main.maxTilesX, Main.maxTilesY];
+
             foreach (Color c in Enum.GetValues(typeof(Color)))
             {
                 wireGroup[c] = new int[Main.maxTilesX, Main.maxTilesY];
@@ -54,43 +135,165 @@ namespace WiringUtils
                 }
             }
 
-            int group = 0;
-            foreach (Color c in Enum.GetValues(typeof(Color)))
+            int group = 1;
+            foreach (Color c in new HashSet<Color> { Color.Yellow, Color.Green, Color.Blue, Color.Red })
             {
                 for (int x = 0; x < Main.maxTilesX; x++)
                 {
                     for (int y = 0; y < Main.maxTilesY; y++)
                     {
-                        ++group;
-                        FindGroup(x, y, c, group);
+                        if (wireGroup[c][x, y] == -1 &&
+                            (wireCache[x, y] & c) != Color.None &&
+                            Main.tile[x, y].TileType != TileID.WirePipe)
+                        {
+                            groupState[group] = false;
+                            triggerable[group] = new HashSet<Point16>();
+                            toggleable[group] = new HashSet<Point16>();
+                            // Guaranteed not to start on junction box so don't care about prevX,Y
+                            FindGroup(x, y, x, y, c, group);
+                            ++group;
+                        }
                     }
                 }
             }
         }
 
-        private static void FindGroup(int x, int y, Color c, int group)
+        private static void RegisterTile(int x, int y, Color c, int group)
         {
-            if(x < 0 || y < 0 || x >= Main.maxTilesX || y >= Main.maxTilesY) return;
-            if (wireGroup[c][x, y] != -1) return;
-            if ((wireCache[x, y] & c) == Color.None) return;
-            wireGroup[c][x, y] = group;
             Tile tile = Main.tile[x, y];
+
+            if (tile.TileType != TileID.WirePipe)
+                wireGroup[c][x, y] = group;
+            else
+            {
+                // TODO: Add junction box group tracking later
+                if (wireGroup[c][x, y] == -1)
+                    wireGroup[c][x, y] = group;
+                else
+                    wireGroup[c][x, y] = 0;
+            }
+
+            // Treat logic lamps specially since they mean different things based on frame
             if (tile.TileType == TileID.LogicGateLamp)
             {
+                // Faulty
                 if (tile.TileFrameX == 36)
-                    faulty_lamps[group] = new Point16(x, y);
+                {
+                    triggerable[group].Add(new Point16(x, y));
+                    groupState.Remove(group);
+                }
+                // On/off
                 else
-                    lamps[group] = new Point16(x, y);
+                {
+                    toggleable[group].Add(new Point16(x, y));
+                }
             }
-            FindGroup(x + 1, y, c, group);
-            FindGroup(x - 1, y, c, group);
-            FindGroup(x, y + 1, c, group);
-            FindGroup(x, y - 1, c, group);
+            else if (triggeredIDs.Contains(tile.TileType))
+            {
+                triggerable[group].Add(new Point16(x, y));
+                groupState.Remove(group);
+            }
+            else if (toggleableIDs.Contains(tile.TileType))
+            {
+                toggleable[group].Add(new Point16(x, y));
+            }
         }
 
-        public static void TripWire(On.Terraria.Wiring.orig_TripWire orig, int left, int top, int width, int height)
+        private static void FindGroup(int x, int y, int prevX, int prevY, Color c, int group)
         {
+            if(!WorldGen.InWorld(x, y, 1)) return;
+            if ((wireCache[x, y] & c) == Color.None) return;
 
+            Tile tile = Main.tile[x, y];
+
+            // If we've already traversed this junction box with this group skip it
+            // If the junction box already has two groups skip it
+            // If it isn't a junction box skip it if it's been traversed before
+            if (tile.TileType == TileID.WirePipe)
+            {
+                // Yes there's a logical simplification here with nested ifs but the logic is clearer this way
+                if (wireGroup[c][x, y] == group || wireGroup[c][x, y] == 0) return;
+            }
+            else if (wireGroup[c][x, y] != -1) return;
+            
+            // Handle all registration of this tile to caches
+            RegisterTile(x, y, c, group);
+
+            if (tile.TileType != TileID.WirePipe)
+            {
+                // If no junction box then easy, just go all directions
+                FindGroup(x + 1, y, x, y, c, group);
+                FindGroup(x - 1, y, x, y, c, group);
+                FindGroup(x, y + 1, x, y, c, group);
+                FindGroup(x, y - 1, x, y, c, group);
+            }
+            else
+            {
+                int deltaX = 0, deltaY = 0;
+                switch (tile.TileFrameX)
+                {
+                    case 0: // + shape
+                        deltaX = (x - prevX);
+                        deltaY = (y - prevY);
+                        break;
+                    case 18: // // shape
+                        deltaX = -(y - prevY);
+                        deltaY = -(x - prevX);
+                        break;
+                    case 36:// \\ shape
+                        deltaX = (y - prevY);
+                        deltaY = (x - prevX);
+                        break;
+                    default:
+                        throw new UsageException("Junction box frame didn't line up to 0, 18 or 36");
+                }
+                FindGroup(x + deltaX, y + deltaY, x, y, c, group);
+            }
+        }
+
+        private static void HitWireSingle(Point16 p)
+        {
+            // _wireSkip should 100% be a hashset, come on relogic
+            if (WiringWrapper._wireSkip.ContainsKey(p)) return;
+            WiringWrapper.HitWireSingle(p.X, p.Y);
+        }
+
+        public static void HitWire(DoubleStack<Point16> next, int wireType)
+        {
+            Color c = intToColor[wireType];
+            HashSet<int> alreadyHit = new HashSet<int>();
+            WiringWrapper._currentWireColor = wireType;
+            while(next.Count != 0)
+            {
+                var p = next.PopFront();
+                int group = wireGroup[c][p.X, p.Y];
+
+                if (alreadyHit.Contains(group)) continue;
+                else alreadyHit.Add(group);
+                
+                if (group == -1) continue;
+
+                if (groupState.ContainsKey(group) && false)
+                {
+                    // If all toggleable then no need to directly trigger them
+                    groupState[group] = !groupState[group];
+                }
+                else
+                {
+                    // If even one triggered tile then must trigger all of them
+                    foreach (var toggleableTile in toggleable[group])
+                    {
+                        HitWireSingle(toggleableTile);
+                    }
+                    foreach (var point in triggerable[group])
+                    {
+                        HitWireSingle(point);
+                    }
+                }
+            }
+            WiringWrapper.running = false;
+            Wiring.running = false;
+            WiringWrapper._wireSkip.Clear();
         }
     }
 }
