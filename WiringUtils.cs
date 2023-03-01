@@ -50,6 +50,36 @@ namespace WiringUtils
             WiringWrapper.Initialize();
         }
 
+        public override void Unload()
+        {
+            base.Unload();
+
+            WorldFile.OnWorldLoad -= Accelerator.Preprocess;
+
+            On.Terraria.Wiring.SetCurrentUser -= Events.SetCurrentUser;
+            //On.Terraria.Wiring.Initialize -= Events.Initialize;
+            On.Terraria.Wiring.UpdateMech -= Events.UpdateMech;
+            On.Terraria.Wiring.HitSwitch -= Events.HitSwitch;
+            On.Terraria.Wiring.PokeLogicGate -= Events.PokeLogicGate;
+            On.Terraria.Wiring.Actuate -= Events.Actuate;
+            On.Terraria.Wiring.ActuateForced -= Events.ActuateForced;
+            //On.Terraria.Wiring.MassWireOperation -= Events.MassWireOperation;
+            On.Terraria.Wiring.GetProjectileSource -= Events.GetProjectileSource;
+            On.Terraria.Wiring.GetNPCSource -= Events.GetNPCSource;
+            On.Terraria.Wiring.GetItemSource -= Events.GetItemSource;
+            On.Terraria.Wiring.ToggleHolidayLight -= Events.ToggleHolidayLight;
+            On.Terraria.Wiring.ToggleHangingLantern -= Events.ToggleHangingLantern;
+            On.Terraria.Wiring.Toggle2x2Light -= Events.Toggle2x2Light;
+            On.Terraria.Wiring.ToggleLampPost -= Events.ToggleLampPost;
+            On.Terraria.Wiring.ToggleTorch -= Events.ToggleTorch;
+            On.Terraria.Wiring.ToggleLamp -= Events.ToggleLamp;
+            On.Terraria.Wiring.ToggleChandelier -= Events.ToggleChandelier;
+            On.Terraria.Wiring.ToggleCampFire -= Events.ToggleCampFire;
+            On.Terraria.Wiring.ToggleFirePlace -= Events.ToggleFirePlace;
+
+            On.Terraria.Netplay.UpdateConnectedClients -= UpdateConnectedClients;
+        }
+
         private class Events
         {
             public static void SetCurrentUser(On.Terraria.Wiring.orig_SetCurrentUser orig, int plr) { 

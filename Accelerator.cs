@@ -66,7 +66,6 @@ namespace WiringUtils
             { 4, Color.Yellow },
         };
 
-        // Purposefully excludes multi-block toggleable tiles like fireplaces
         public static readonly HashSet<int> triggeredIDs = new HashSet<int>
         {
             TileID.LogicGateLamp, // treated specially
