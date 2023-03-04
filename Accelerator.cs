@@ -230,7 +230,7 @@ namespace WiringUtils
         private static void HitWireSingle(Point16 p)
         {
             // _wireSkip should 100% be a hashset, come on relogic
-            if (WiringWrapper._wireSkip.ContainsKey(p)) return;
+            //if (WiringWrapper._wireSkip.ContainsKey(p)) return;
             WiringWrapper.HitWireSingle(p.X, p.Y);
         }
 
@@ -310,7 +310,7 @@ namespace WiringUtils
             }
             WiringWrapper.running = false;
             Wiring.running = false;
-            WiringWrapper._wireSkip.Clear();
+            //WiringWrapper._wireSkip.Clear();
         }
 
         /*

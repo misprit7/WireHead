@@ -163,4 +163,18 @@ namespace WiringUtils
             }
         }
     }
+
+    public class WorldLoader : ModSystem
+    {
+        public override void OnWorldLoad()
+        {
+            base.OnWorldLoad();
+        }
+
+        public override void PreSaveAndQuit()
+        {
+            Accelerator.BringInSync();
+            base.PreSaveAndQuit();
+        }
+    }
 }

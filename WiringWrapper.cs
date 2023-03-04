@@ -88,12 +88,12 @@ namespace Terraria
 
         public static void SkipWire(int x, int y)
         {
-            _wireSkip[new Point16(x, y)] = true;
+            //_wireSkip[new Point16(x, y)] = true;
         }
 
         public static void SkipWire(Point16 point)
         {
-            _wireSkip[point] = true;
+            //_wireSkip[point] = true;
         }
 
         public static void UpdateMech()
