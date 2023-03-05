@@ -659,12 +659,7 @@ namespace Terraria
             /*
              * Custom addition with optimized faulty logic gate handling
              */
-            if (lampY + 2 < Main.maxTilesY &&
-                Main.tile[lampX, lampY].TileFrameX == 36 &&
-                Main.tile[lampX, lampY + 1].TileType == TileID.LogicGateLamp &&
-                Main.tile[lampX, lampY + 1].TileFrameX != 36 &&
-                Main.tile[lampX, lampY + 2].TileType == TileID.LogicGate &&
-                Main.tile[lampX, lampY + 2].TileFrameX == 36)
+            if (Accelerator.IsStandardFaulty(lampX, lampY))
             {
                 Accelerator.CheckFaultyGate(lampX, lampY);
                 return;
@@ -735,7 +730,7 @@ namespace Terraria
                 gateTile.TileFrameX = 36;
 
             SkipWire(lampX, gateY);
-            WorldGen.SquareTileFrame(lampX, gateY);
+            WorldGen.SquareTileFrame(lampX, gateY); //3182, 216
             NetMessage.SendTileSquare(-1, lampX, gateY);
             bool flag7 = !lampFaulty || faultyLampTriggered;
             if (faultyLampTriggered)

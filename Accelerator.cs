@@ -26,16 +26,18 @@ namespace WiringUtils
 
         // Which group each tile belongs to
         // -1 is no group, 0 is junction box with two groups
-        public static Dictionary<Color, int[,]> wireGroup;
+        public static Dictionary<Color, int[,]> wireGroup = new Dictionary<Color, int[,]>();
         // Copy of which wires are at each tile in a more usable form
         public static Color[,] wireCache;
         // Set of lamps/faultylamps attached to each point
-        public static Dictionary<int, HashSet<Point16>> toggleable;
-        public static Dictionary<int, HashSet<Point16>> triggerable;
+        public static Dictionary<int, HashSet<Point16>> toggleable = new Dictionary<int, HashSet<Point16>>();
+        public static Dictionary<int, HashSet<Point16>> triggerable = new Dictionary<int, HashSet<Point16>>();
         // True, and if so state is whether wire is on or not, not present if faulty logic gate present
-        public static Dictionary<int, bool> groupState;
+        public static Dictionary<int, bool> groupState = new Dictionary<int, bool>();
         // Groups that are out of sync with the world, value is original state of group
-        public static Dictionary<int, bool> groupsOutOfSync;
+        public static Dictionary<int, bool> groupsOutOfSync = new Dictionary<int, bool>();
+        // Hash set of "Standard" faulty lamp arrangments, indexed by top faulty lamp
+        public static HashSet<Point16> standardLamps = new HashSet<Point16>();
 
 
 
@@ -220,8 +222,23 @@ namespace WiringUtils
                         throw new UsageException("Junction box frame didn't line up to 0, 18 or 36");
                 }
 
-                FindGroup(x + deltaX, y + deltaY, x, y, c, group);
+                       FindGroup(x + deltaX, y + deltaY, x, y, c, group);
             }
+        }
+
+        /*
+         * Checks whether a tile is the top of a standard gate
+         */
+        public static bool IsStandardFaulty(int x, int y)
+        {
+            int faultyY = y, lampY = y + 1, gateY = y + 2;
+            return gateY < Main.maxTilesY &&
+                Main.tile[x, faultyY].TileType == TileID.LogicGateLamp &&
+                Main.tile[x, faultyY].TileFrameX == 36 &&
+                Main.tile[x, lampY].TileType == TileID.LogicGateLamp &&
+                Main.tile[x, lampY].TileFrameX != 36 &&
+                Main.tile[x, gateY].TileType == TileID.LogicGate &&
+                Main.tile[x, gateY].TileFrameX == 36;
         }
 
         /*
@@ -231,7 +248,24 @@ namespace WiringUtils
         {
             // _wireSkip should 100% be a hashset, come on relogic
             //if (WiringWrapper._wireSkip.ContainsKey(p)) return;
-            WiringWrapper.HitWireSingle(p.X, p.Y);
+
+            if (standardLamps.Contains(p))
+            {
+                WiringWrapper._LampsToCheck.Enqueue(p);
+            } 
+            else if (standardLamps.Contains(new Point16(p.X, p.Y-1)))
+            {
+                // Don't call WorldGen.SquareTileFrame and NetMessage.SendTileSquare
+                // Also don't enqueue check since it isn't needed
+                // TODO: add way to sync multiplayer
+                Tile tile = Main.tile[p.X, p.Y];
+                if (tile.TileFrameX == 0) tile.TileFrameX = 18;
+                else if (tile.TileFrameX == 18) tile.TileFrameX = 0;
+            }
+            else
+            {
+                WiringWrapper.HitWireSingle(p.X, p.Y);
+            }
         }
 
         /*
@@ -245,8 +279,11 @@ namespace WiringUtils
             // on a related note is really dumb, you shouldn't have to check tile.TileFrameX == 66
             // or whatever to see that a torch is on) 
             bool oldVal = false, newVal = false;
-            foreach (Color c in Colors)
+            // Probably not a necessary microoptimization but this is critical path right now so might as well
+            //foreach (Color c in Colors)
+            for(int i = 0; i < 4; ++i)
             {
+                Color c = (Color) (1 << i);
                 int colorGroup = wireGroup[c][x, y];
                 if (colorGroup != -1 && groupState.ContainsKey(colorGroup))
                 {
@@ -353,13 +390,14 @@ namespace WiringUtils
         public static void Preprocess()
         {
             // Try and bring in sync before resetting everything
-            if (wireGroup != null) BringInSync();
-            wireGroup = new Dictionary<Color, int[,]>();
-            toggleable = new Dictionary<int, HashSet<Point16>>();
-            triggerable = new Dictionary<int, HashSet<Point16>>();
-            groupState = new Dictionary<int, bool>();
+            if (wireGroup.Count != 0) BringInSync();
+            wireGroup.Clear();
+            toggleable.Clear();
+            triggerable.Clear();
+            groupState.Clear();
+            groupsOutOfSync.Clear();
+            standardLamps.Clear();
             wireCache = new Color[Main.maxTilesX, Main.maxTilesY];
-            groupsOutOfSync = new Dictionary<int, bool>();
 
             foreach (Color c in Colors)
             {
@@ -377,6 +415,7 @@ namespace WiringUtils
                         if (tile.BlueWire) mask |= Color.Blue;
                         if (tile.RedWire) mask |= Color.Red;
                         wireCache[x, y] = mask;
+                        if (IsStandardFaulty(x, y)) standardLamps.Add(new Point16(x, y));
                     }
                 }
             }
