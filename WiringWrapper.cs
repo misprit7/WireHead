@@ -629,6 +629,15 @@ namespace Terraria
 
         private static void CheckLogicGate(int lampX, int lampY)
         {
+            /*
+             * Custom addition with optimized faulty logic gate handling
+             */
+            if (Accelerator.standardLamps[lampX, lampY])
+            {
+                Accelerator.CheckFaultyGate(lampX, lampY);
+                return;
+            }
+
             if (!WorldGen.InWorld(lampX, lampY, 1))
                 return;
 
@@ -653,15 +662,6 @@ namespace Terraria
                     continue;
                 }
 
-                return;
-            }
-
-            /*
-             * Custom addition with optimized faulty logic gate handling
-             */
-            if (Accelerator.IsStandardFaulty(lampX, lampY))
-            {
-                Accelerator.CheckFaultyGate(lampX, lampY);
                 return;
             }
 
