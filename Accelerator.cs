@@ -40,9 +40,11 @@ namespace WiringUtils
         // Used to be hash set but hash set lookup was performance bottleneck so flat array should be faster
         public static bool[,] standardLamps;
 
-        // Set of lamps/faultylamps attached to each point
-        public static Dictionary<int, HashSet<Point16>> toggleable = new Dictionary<int, HashSet<Point16>>();
-        public static Dictionary<int, HashSet<Point16>> triggerable = new Dictionary<int, HashSet<Point16>>();
+        // Toggleable/triggerable tiles attached to each point
+        // First index is group, second is list of tiles
+        // uint is a bit concatenation of both 16 bit x,y coordinates
+        public static uint[][] toggleable;
+        public static uint[][] triggerable;
 
         // Number of total groups
         // All arrays indexed by groups are guaranteed to be of this size
@@ -54,7 +56,13 @@ namespace WiringUtils
         // Groups that are out of sync with the world, value is original state of group
         public static bool[] groupOutOfSync;
 
+        /**********************************************************************
+         * Construction Variables
+         *********************************************************************/
 
+        // Variables to help in the construction of toggleable/triggerable
+        public static Dictionary<int, HashSet<Point16>> toggleableDict = new Dictionary<int, HashSet<Point16>>();
+        public static Dictionary<int, HashSet<Point16>> triggerableDict = new Dictionary<int, HashSet<Point16>>();
 
 
         /**********************************************************************
@@ -165,23 +173,23 @@ namespace WiringUtils
                 // Faulty
                 if (tile.TileFrameX == 36)
                 {
-                    triggerable[group].Add(new Point16(x, y));
+                    triggerableDict[group].Add(new Point16(x, y));
                     groupToggleable[group] = false;
                 }
                 // On/off
                 else
                 {
-                    toggleable[group].Add(new Point16(x, y));
+                    toggleableDict[group].Add(new Point16(x, y));
                 }
             }
             else if (triggeredIDs.Contains(tile.TileType))
             {
-                triggerable[group].Add(new Point16(x, y));
+                triggerableDict[group].Add(new Point16(x, y));
                 groupToggleable[group] = false;
             }
             else if (toggleableIDs.Contains(tile.TileType))
             {
-                toggleable[group].Add(new Point16(x, y));
+                toggleableDict[group].Add(new Point16(x, y));
             }
         }
 
@@ -260,30 +268,38 @@ namespace WiringUtils
                 Main.tile[x, gateY].TileFrameX == 36;
         }
 
+        private static void ToggleLamp(int x, int y)
+        {
+            // Don't call WorldGen.SquareTileFrame and NetMessage.SendTileSquare
+            // Also don't enqueue check since it isn't needed
+            // TODO: add way to sync multiplayer
+            Tile tile = Main.tile[x, y];
+            if (tile.TileFrameX == 0) tile.TileFrameX = 18;
+            else if (tile.TileFrameX == 18) tile.TileFrameX = 0;
+        }
+
         /*
          * Hit a single wire
          */
-        private static void HitWireSingle(Point16 p)
+        private static void HitWireSingle(uint p)
         {
             // _wireSkip should 100% be a hashset, come on relogic
             //if (WiringWrapper._wireSkip.ContainsKey(p)) return;
 
-            if (standardLamps[p.X,p.Y])
+            short x = (short)(p >> 16), y = (short)(p & 0xFFFF);
+
+            if (standardLamps[x, y])
             {
-                WiringWrapper._LampsToCheck.Enqueue(p);
+                // Potential performance bottleneck
+                WiringWrapper._LampsToCheck.Enqueue(new Point16(x, y));
             } 
-            else if (standardLamps[p.X, p.Y-1])
+            else if (standardLamps[x, y-1])
             {
-                // Don't call WorldGen.SquareTileFrame and NetMessage.SendTileSquare
-                // Also don't enqueue check since it isn't needed
-                // TODO: add way to sync multiplayer
-                Tile tile = Main.tile[p.X, p.Y];
-                if (tile.TileFrameX == 0) tile.TileFrameX = 18;
-                else if (tile.TileFrameX == 18) tile.TileFrameX = 0;
+                ToggleLamp(x, y);
             }
             else
             {
-                WiringWrapper.HitWireSingle(p.X, p.Y);
+                WiringWrapper.HitWireSingle(x, y);
             }
         }
 
@@ -298,15 +314,64 @@ namespace WiringUtils
             // on a related note is really dumb, you shouldn't have to check tile.TileFrameX == 66
             // or whatever to see that a torch is on) 
             bool ret = false;
-            for(int c = 0; c < 4; ++c)
+            //for (int c = 0; c < colors; ++c)
+            //{
+            //    int group = wireGroup[x, y, c];
+            //    if (group != -1 && groupToggleable[group])
+            //    {
+            //        ret = ret != groupOutOfSync[group];
+            //    }
+            //}
+
+            // Pretty ugly but want to make sure compiler isn't being dumb in above loop
+
+            int group = wireGroup[x, y, 0];
+            if (group != -1 && groupToggleable[group])
             {
-                int group = wireGroup[x, y, c];
-                if (group != -1 && groupToggleable[group])
-                {
-                    ret = ret != groupOutOfSync[group];
-                }
+                ret = ret != groupOutOfSync[group];
             }
+
+            group = wireGroup[x, y, 1];
+            if (group != -1 && groupToggleable[group])
+            {
+                ret = ret != groupOutOfSync[group];
+            }
+
+            group = wireGroup[x, y, 2];
+            if (group != -1 && groupToggleable[group])
+            {
+                ret = ret != groupOutOfSync[group];
+            }
+
+            group = wireGroup[x, y, 3];
+            if (group != -1 && groupToggleable[group])
+            {
+                ret = ret != groupOutOfSync[group];
+            }
+
             return ret;
+
+            //return groupToggleable[wireGroup[x, y, 0]] 
+            //    != groupToggleable[wireGroup[x, y, 1]]
+            //    != groupToggleable[wireGroup[x, y, 2]]
+            //    != groupToggleable[wireGroup[x, y, 3]];
+
+        }
+
+        /*
+         * Converts a point to a bitwise uint
+         * Most significant 16 bits are x, least are y
+         */
+        private static uint Point2uint(Point16 p)
+        {
+            uint x = ((uint)p.X) << 16;
+            uint y = (uint)p.Y;
+            return x | y;
+        }
+
+        private static Point16 uint2Point(uint p)
+        {
+            return new Point16((short)(p >> 16), (short)(p & 0xFFFF));
         }
 
         /**********************************************************************
@@ -341,13 +406,17 @@ namespace WiringUtils
                 else
                 {
                     // If even one triggered tile then must trigger all of them
-                    foreach (Point16 toggleableTile in toggleable[group])
+                    // Supposedly using local variables disables bound checking although I'm doubtful
+                    // https://blog.tedd.no/2020/06/01/faster-c-array-access/
+                    var tog = toggleable[group];
+                    for (int i = 0; i < tog.Length; ++i)
                     {
-                        HitWireSingle(toggleableTile);
+                        HitWireSingle(tog[i]);
                     }
-                    foreach (Point16 point in triggerable[group])
+                    var trig = triggerable[group];
+                    for (int i = 0; i < trig.Length; ++i)
                     {
-                        HitWireSingle(point);
+                        HitWireSingle(trig[i]);
                     }
                 }
             }
@@ -397,11 +466,13 @@ namespace WiringUtils
         {
             // Try and bring in sync before resetting everything
             BringInSync();
-            toggleable.Clear();
-            triggerable.Clear();
+            
             standardLamps = new bool[Main.maxTilesX, Main.maxTilesY];
             wireCache = new int[Main.maxTilesX, Main.maxTilesY];
             wireGroup = new int[Main.maxTilesX, Main.maxTilesY, colors];
+
+            toggleableDict = new Dictionary<int, HashSet<Point16>>();
+            triggerableDict = new Dictionary<int, HashSet<Point16>>();
 
 
             for (int x = 0; x < Main.maxTilesX; ++x)
@@ -427,7 +498,7 @@ namespace WiringUtils
                 }
             }
 
-            int group = 1;
+            int group = 0;
             numGroups = 1;
             groupToggleable = new bool[numGroups];
             groupState = new bool[numGroups];
@@ -453,8 +524,8 @@ namespace WiringUtils
                             groupState[group] = false;
                             groupOutOfSync[group] = false;
 
-                            triggerable[group] = new HashSet<Point16>();
-                            toggleable[group] = new HashSet<Point16>();
+                            toggleableDict[group] = new HashSet<Point16>();
+                            triggerableDict[group] = new HashSet<Point16>();
                             // Guaranteed not to start on junction box so don't care about prevX,Y
                             FindGroup(x, y, x, y, c, group);
                             ++group;
@@ -465,6 +536,28 @@ namespace WiringUtils
             // Running resizing was an overestimage, switch back
             numGroups = group;
 
+            // Convert toggleableDict/triggerableDict to arrays
+            toggleable = new uint[numGroups][];
+            triggerable = new uint[numGroups][];
+            for (int g = 0; g < numGroups; ++g)
+            {
+                toggleable[g] = new uint[toggleableDict[g].Count];
+                triggerable[g] = new uint[triggerableDict[g].Count];
+                int i = 0;
+                foreach (Point16 p in toggleableDict[g])
+                {
+                    toggleable[g][i++] = Point2uint(p);
+                }
+                i = 0;
+                foreach (Point16 p in triggerableDict[g])
+                {
+                    triggerable[g][i++] = Point2uint(p);
+                }
+            }
+
+            toggleableDict.Clear();
+            triggerableDict.Clear();
+
         }
 
         /*
@@ -472,20 +565,24 @@ namespace WiringUtils
          */
         public static void BringInSync()
         {
-            HashSet<Point16> lampsVisited = new HashSet<Point16>();
+            HashSet<uint> lampsVisited = new HashSet<uint>();
 
             for (int g = 0; g < numGroups; ++g)
             {
                 if (groupOutOfSync[g] != true) continue;
-                foreach (Point16 toggleablePoint in toggleable[g])
+                //foreach (Point16 toggleablePoint in toggleable[g])
+                for (int i = 0; i < toggleable[g].Length; ++i)
                 {
-                    if (lampsVisited.Contains(toggleablePoint)) continue;
+                    uint p = toggleable[g][i];
+                    if (lampsVisited.Contains(p)) continue;
 
-                    lampsVisited.Add(toggleablePoint);
+                    lampsVisited.Add(p);
 
-                    if (ShouldChange(toggleablePoint.X, toggleablePoint.Y))
+                    Point16 point = uint2Point(p);
+
+                    if (ShouldChange(point.X, point.Y))
                     {
-                        HitWireSingle(toggleablePoint);
+                        HitWireSingle(p);
                     }
                 }
                 groupOutOfSync[g] = false;
