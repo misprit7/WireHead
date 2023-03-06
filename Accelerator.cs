@@ -56,6 +56,9 @@ namespace WiringUtils
         // Groups that are out of sync with the world, value is original state of group
         public static bool[] groupOutOfSync;
 
+        // Whether to sync on next tick, used to make sure sync is always called on proper thread
+        public static bool shouldSync;
+
         /**********************************************************************
          * Construction Variables
          *********************************************************************/
@@ -358,8 +361,23 @@ namespace WiringUtils
 
         }
 
+        private static void SyncClients()
+        {
+            for (int x = 0; x < Main.maxTilesX; ++x)
+            {
+                for (int y = 0; y < Main.maxTilesY; ++y)
+                {
+                    Tile tile = Main.tile[x, y];
+                    if (toggleableIDs.Contains(tile.TileType))
+                    {
+                        NetMessage.SendTileSquare(-1, x, y);
+                    }
+                }
+            }
+        }
+
         /*
-         * Converts a point to a bitwise uint
+         * Converts a point to/from a bitwise uint
          * Most significant 16 bits are x, least are y
          */
         private static uint Point2uint(Point16 p)
@@ -368,7 +386,6 @@ namespace WiringUtils
             uint y = (uint)p.Y;
             return x | y;
         }
-
         private static Point16 uint2Point(uint p)
         {
             return new Point16((short)(p >> 16), (short)(p & 0xFFFF));
@@ -586,6 +603,10 @@ namespace WiringUtils
                     }
                 }
                 groupOutOfSync[g] = false;
+            }
+            if (Main.netMode == NetmodeID.Server)
+            {
+                SyncClients();
             }
         }
     }

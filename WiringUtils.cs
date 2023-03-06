@@ -12,16 +12,28 @@ namespace WiringUtils
 {
 	public class WiringUtils : Mod
 	{
+
+        public static bool vanillaWiring = false;
+
         private static void UpdateConnectedClients(On.Terraria.Netplay.orig_UpdateConnectedClients orig)
         {
             // Forces update even if no clients connected by making it think there are always clients
             orig();
             Netplay.HasClients = true;
         }
-        public override void Load()
+
+        /*
+         * The On.Terraria api comes from monomod
+         * https://github.com/MonoMod/MonoMod
+         * From my understanding it works at compile time so doesn't suffer the performance penalty of reflection
+         */
+
+        /*
+         * Override vanilla wiring implementation
+         */
+        public static void AddEvents()
         {
-            base.Load();
-            
+            vanillaWiring = false;
             WorldFile.OnWorldLoad += Accelerator.Preprocess;
 
             On.Terraria.Wiring.SetCurrentUser += Events.SetCurrentUser;
@@ -44,16 +56,15 @@ namespace WiringUtils
             On.Terraria.Wiring.ToggleChandelier += Events.ToggleChandelier;
             On.Terraria.Wiring.ToggleCampFire += Events.ToggleCampFire;
             On.Terraria.Wiring.ToggleFirePlace += Events.ToggleFirePlace;
-
-            On.Terraria.Netplay.UpdateConnectedClients += UpdateConnectedClients;
-
             WiringWrapper.Initialize();
         }
 
-        public override void Unload()
+        /*
+         * Go back to old wiring implementation
+         */
+        public static void RemoveEvents()
         {
-            base.Unload();
-
+            vanillaWiring = true;
             WorldFile.OnWorldLoad -= Accelerator.Preprocess;
 
             On.Terraria.Wiring.SetCurrentUser -= Events.SetCurrentUser;
@@ -76,10 +87,29 @@ namespace WiringUtils
             On.Terraria.Wiring.ToggleChandelier -= Events.ToggleChandelier;
             On.Terraria.Wiring.ToggleCampFire -= Events.ToggleCampFire;
             On.Terraria.Wiring.ToggleFirePlace -= Events.ToggleFirePlace;
+            Wiring.Initialize();
+        }
 
+        public override void Load()
+        {
+            base.Load();
+            On.Terraria.Netplay.UpdateConnectedClients += UpdateConnectedClients;
+
+            AddEvents();
+
+        }
+
+        public override void Unload()
+        {
+            base.Unload();
+            RemoveEvents();
             On.Terraria.Netplay.UpdateConnectedClients -= UpdateConnectedClients;
         }
 
+        /*
+         * This is obviously super ugly, I wish there was a cleaner way to do it
+         * Might be a way with lambdas or something but I couldn't figure anything out in a reasonable amount of time
+         */
         private class Events
         {
             public static void SetCurrentUser(On.Terraria.Wiring.orig_SetCurrentUser orig, int plr) { 
@@ -164,7 +194,7 @@ namespace WiringUtils
         }
     }
 
-    public class WorldLoader : ModSystem
+    public class WiringUtilsSystem : ModSystem
     {
         public override void OnWorldLoad()
         {
@@ -173,8 +203,20 @@ namespace WiringUtils
 
         public override void PreSaveAndQuit()
         {
-            Accelerator.BringInSync();
+            if (!WiringUtils.vanillaWiring)
+                Accelerator.BringInSync();
             base.PreSaveAndQuit();
+        }
+
+        public override void PostUpdateWorld()
+        {
+            if (!WiringUtils.vanillaWiring && Accelerator.shouldSync)
+            {
+                Accelerator.BringInSync();
+                Accelerator.shouldSync = false;
+            }
+
+            base.PostUpdateWorld();
         }
     }
 }
