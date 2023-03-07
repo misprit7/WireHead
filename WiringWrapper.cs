@@ -2102,7 +2102,7 @@ namespace Terraria
                                         int num108 = 50;
                                         int[] array2 = new int[num108];
                                         int num109 = 0;
-                                        for (int num110 = 0; num110 < 200; num110++)
+                                        for (int num110 = 0; num110 < Main.npc.Length; num110++)
                                         {
                                             if (Main.npc[num110].active && (Main.npc[num110].type == 17 || Main.npc[num110].type == 19 || Main.npc[num110].type == 22 || Main.npc[num110].type == 38 || Main.npc[num110].type == 54 || Main.npc[num110].type == 107 || Main.npc[num110].type == 108 || Main.npc[num110].type == 142 || Main.npc[num110].type == 160 || Main.npc[num110].type == 207 || Main.npc[num110].type == 209 || Main.npc[num110].type == 227 || Main.npc[num110].type == 228 || Main.npc[num110].type == 229 || Main.npc[num110].type == 368 || Main.npc[num110].type == 369 || Main.npc[num110].type == 550 || Main.npc[num110].type == 441 || Main.npc[num110].type == 588))
                                             {
@@ -2131,7 +2131,7 @@ namespace Terraria
                                         int num104 = 50;
                                         int[] array = new int[num104];
                                         int num105 = 0;
-                                        for (int num106 = 0; num106 < 200; num106++)
+                                        for (int num106 = 0; num106 < Main.npc.Length; num106++)
                                         {
                                             if (Main.npc[num106].active && (Main.npc[num106].type == 18 || Main.npc[num106].type == 20 || Main.npc[num106].type == 124 || Main.npc[num106].type == 178 || Main.npc[num106].type == 208 || Main.npc[num106].type == 353 || Main.npc[num106].type == 633 || Main.npc[num106].type == 663))
                                             {
@@ -2553,7 +2553,7 @@ namespace Terraria
                     }
                 }
 
-                for (int k = 0; k < 200; k++)
+                for (int k = 0; k < Main.npc.Length; k++)
                 {
                     if (Main.npc[k].active && !Main.npc[k].teleporting && Main.npc[k].lifeMax > 5 && !Main.npc[k].boss && !Main.npc[k].noTileCollide)
                     {
@@ -2572,7 +2572,7 @@ namespace Terraria
                 Main.player[l].teleporting = false;
             }
 
-            for (int m = 0; m < 200; m++)
+            for (int m = 0; m < Main.npc.Length; m++)
             {
                 Main.npc[m].teleporting = false;
             }

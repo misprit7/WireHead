@@ -7,6 +7,8 @@ using Terraria;
 using SteelSeries.GameSense;
 using Microsoft.Xna.Framework;
 using Terraria.DataStructures;
+using Terraria.GameContent.Tile_Entities;
+using IL.Terraria.ID;
 
 namespace WiringUtils
 {
@@ -94,6 +96,14 @@ namespace WiringUtils
         {
             base.Load();
             On.Terraria.Netplay.UpdateConnectedClients += UpdateConnectedClients;
+            //Array.Resize(ref Main.npc, 1000);
+            //for (int i = 201; i < Main.npc.Length; ++i)
+            //{
+            //    Main.npc[i] = new NPC();
+            //    Main.npc[i].whoAmI = i;
+            //}
+
+            On.Terraria.NPC.NewNPC += NewNPC;
 
             AddEvents();
 
@@ -102,8 +112,47 @@ namespace WiringUtils
         public override void Unload()
         {
             base.Unload();
-            RemoveEvents();
             On.Terraria.Netplay.UpdateConnectedClients -= UpdateConnectedClients;
+            On.Terraria.NPC.NewNPC -= NewNPC;
+
+            RemoveEvents();
+        }
+
+        public static int NewNPC(On.Terraria.NPC.orig_NewNPC orig,
+            IEntitySource source, int X, int Y, int Type, int Start = 0, float ai0 = 0f, float ai1 = 0f,
+            float ai2 = 0f, float ai3 = 0f, int Target = 255)
+        {
+            if(Type != 488)
+                return orig(source, X, Y, Type, Start, ai0, ai1, ai2, ai3, Target);
+
+            int num = -1;
+            for (int i = 5; i < Main.npc.Length; i++)
+            {
+                if (!Main.npc[i].active)
+                {
+                    num = i;
+                    break;
+                }
+            }
+            if (num >= 0)
+            {
+                Main.npc[num] = new NPC();
+                Main.npc[num].SetDefaults(Type);
+                Main.npc[num].whoAmI = num;
+                Main.npc[num].position.X = X - Main.npc[num].width / 2;
+                Main.npc[num].position.Y = Y - Main.npc[num].height;
+                Main.npc[num].active = true;
+                Main.npc[num].timeLeft = (int)((double)NPC.activeTime * 1.25);
+                Main.npc[num].wet = Collision.WetCollision(Main.npc[num].position, Main.npc[num].width, Main.npc[num].height);
+                Main.npc[num].ai[0] = ai0;
+                Main.npc[num].ai[1] = ai1;
+                Main.npc[num].ai[2] = ai2;
+                Main.npc[num].ai[3] = ai3;
+                Main.npc[num].target = Target;
+                
+                return num;
+            }
+            throw new Exception("Failed to create new npc");
         }
 
         /*
