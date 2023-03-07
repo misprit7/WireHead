@@ -40,6 +40,19 @@ namespace WiringUtils.Commands
                         WiringUtils.RemoveEvents();
                     }
                     break;
+                case "threading":
+                case "t":
+                    if (args[1] == "true" || args[1] == "enable" || args[1] == "t" || args[1] == "e")
+                    {
+                        Accelerator.threading = true;
+                    } else if (args[1] == "false" || args[1] == "disable" || args[1] == "f" || args[1] == "d")
+                    {
+                        Accelerator.threading = false;
+                    } else
+                    {
+                        throw new UsageException("Argument to threading not recognized");
+                    }
+                    break;
                 default:
                     throw new UsageException("cmd not recognized");
             }

@@ -8,6 +8,9 @@ using Terraria.GameContent.UI;
 using Terraria.ID;
 using Terraria.Localization;
 using WiringUtils;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Collections.Concurrent;
 
 /*
  * This is a wrapper for decompiled wiring code with some small changes to make it compatible with tModLoader
@@ -33,10 +36,10 @@ namespace Terraria
         public static DoubleStack<Point16> _wireList;
         public static DoubleStack<byte> _wireDirectionList;
         public static Dictionary<Point16, byte> _toProcess;
-        public static Queue<Point16> _GatesCurrent;
-        public static Queue<Point16> _LampsToCheck;
-        public static Queue<Point16> _GatesNext;
-        public static Dictionary<Point16, bool> _GatesDone;
+        // Changed this to concurrent, should keep an eye to make sure this doesn't have penalty
+        public static ConcurrentQueue<Point16> _GatesCurrent;
+        public static ConcurrentQueue<Point16> _LampsToCheck;
+        public static ConcurrentDictionary<Point16, bool> _GatesDone;
         public static Dictionary<Point16, byte> _PixelBoxTriggers;
         public static Vector2[] _teleport;
         public const int MaxPump = 20;
@@ -71,10 +74,9 @@ namespace Terraria
             _wireList = new DoubleStack<Point16>();
             _wireDirectionList = new DoubleStack<byte>();
             _toProcess = new Dictionary<Point16, byte>();
-            _GatesCurrent = new Queue<Point16>();
-            _GatesNext = new Queue<Point16>();
-            _GatesDone = new Dictionary<Point16, bool>();
-            _LampsToCheck = new Queue<Point16>();
+            _GatesCurrent = new ConcurrentQueue<Point16>();
+            _GatesDone = new ConcurrentDictionary<Point16, bool>();
+            _LampsToCheck = new ConcurrentQueue<Point16>();
             _PixelBoxTriggers = new Dictionary<Point16, byte>();
             _inPumpX = new int[20];
             _inPumpY = new int[20];
@@ -585,6 +587,7 @@ namespace Terraria
             _PixelBoxTriggers.Clear();
         }
 
+        // Heavily modified from vanilla to accomodate threading
         private static void LogicGatePass()
         {
             if (_GatesCurrent.Count != 0)
@@ -593,32 +596,48 @@ namespace Terraria
             _GatesDone.Clear();
             while (_LampsToCheck.Count > 0)
             {
-                while (_LampsToCheck.Count > 0)
+                if (Accelerator.threading)
                 {
-                    Point16 point = _LampsToCheck.Dequeue();
-                    CheckLogicGate(point.X, point.Y);
-                }
-
-                while (_GatesNext.Count > 0)
-                {
-                    Utils.Swap(ref _GatesCurrent, ref _GatesNext);
-                    while (_GatesCurrent.Count > 0)
+                    Parallel.ForEach(_LampsToCheck, lamp =>
                     {
-                        Point16 key = _GatesCurrent.Peek();
-                        if (_GatesDone.TryGetValue(key, out bool value) && value)
-                        {
-                            _GatesCurrent.Dequeue();
-                            continue;
-                        }
-
-                        _GatesDone.Add(key, value: true);
-                        TripWire(key.X, key.Y, 1, 1);
-                        _GatesCurrent.Dequeue();
+                        CheckLogicGate(lamp.X, lamp.Y);
+                    });
+                    // Leaves capacity as per 
+                    // https://learn.microsoft.com/en-us/dotnet/api/system.collections.queue.clear?view=net-8.0#system-collections-queue-clear
+                }
+                else
+                {
+                    foreach (Point16 point in _LampsToCheck)
+                    {
+                        CheckLogicGate(point.X, point.Y);
                     }
                 }
+                _LampsToCheck.Clear();
+
+                // Only have to iterate once over gatescurrent since TripWire should only enqueue to _LampsToCheck
+                if (Accelerator.threading)
+                {
+                    Parallel.ForEach(_GatesCurrent, point =>
+                    {
+                        _GatesDone[point] = true;
+                        Accelerator.HitPoint(point);
+                    });
+                }
+                else
+                {
+                    foreach (Point16 point in _GatesCurrent)
+                    {
+                        _GatesDone[point] = true;
+                        // TODO: fix teleportation
+                        Accelerator.HitPoint(point);
+                    }
+                }
+                _GatesCurrent.Clear();
             }
 
             _GatesDone.Clear();
+
+
             if (blockPlayerTeleportationForOneIteration)
             {
                 // Other files check this so we need to make sure it stays in sync
@@ -748,7 +767,8 @@ namespace Terraria
             {
                 if (!value)
                 {
-                    _GatesNext.Enqueue(new Point16(lampX, gateY));
+                    // Changed from _GatesNext to _GatesCurrent since the duplication isn't necessary
+                    _GatesCurrent.Enqueue(new Point16(lampX, gateY));
                     return;
                 }
 

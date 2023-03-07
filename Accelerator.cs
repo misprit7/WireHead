@@ -59,6 +59,9 @@ namespace WiringUtils
         // Whether to sync on next tick, used to make sure sync is always called on proper thread
         public static bool shouldSync;
 
+        // Whether to use threading or not
+        public static bool threading = false;
+
         /**********************************************************************
          * Construction Variables
          *********************************************************************/
@@ -353,12 +356,6 @@ namespace WiringUtils
             }
 
             return ret;
-
-            //return groupToggleable[wireGroup[x, y, 0]] 
-            //    != groupToggleable[wireGroup[x, y, 1]]
-            //    != groupToggleable[wireGroup[x, y, 2]]
-            //    != groupToggleable[wireGroup[x, y, 3]];
-
         }
 
         private static void SyncClients()
@@ -372,6 +369,38 @@ namespace WiringUtils
                     {
                         NetMessage.SendTileSquare(-1, x, y);
                     }
+                }
+            }
+        }
+
+        /*
+         * Hits a single wire group
+         */
+        public static void HitGroup(int group)
+        {
+
+
+            if (groupToggleable[group])
+            {
+                // Keep track of syncing
+                groupOutOfSync[group] = !groupOutOfSync[group];
+                // If all toggleable then no need to directly trigger them
+                groupState[group] = !groupState[group];
+            }
+            else
+            {
+                // If even one triggered tile then must trigger all of them
+                // Supposedly using local variables disables bound checking although I'm doubtful
+                // https://blog.tedd.no/2020/06/01/faster-c-array-access/
+                var tog = toggleable[group];
+                for (int i = 0; i < tog.Length; ++i)
+                {
+                    HitWireSingle(tog[i]);
+                }
+                var trig = triggerable[group];
+                for (int i = 0; i < trig.Length; ++i)
+                {
+                    HitWireSingle(trig[i]);
                 }
             }
         }
@@ -412,30 +441,7 @@ namespace WiringUtils
                 else alreadyHit.Add(group);
 
                 if (group == -1) continue;
-
-                if (groupToggleable[group])
-                {
-                    // Keep track of syncing
-                    groupOutOfSync[group] = !groupOutOfSync[group];
-                    // If all toggleable then no need to directly trigger them
-                    groupState[group] = !groupState[group];
-                }
-                else
-                {
-                    // If even one triggered tile then must trigger all of them
-                    // Supposedly using local variables disables bound checking although I'm doubtful
-                    // https://blog.tedd.no/2020/06/01/faster-c-array-access/
-                    var tog = toggleable[group];
-                    for (int i = 0; i < tog.Length; ++i)
-                    {
-                        HitWireSingle(tog[i]);
-                    }
-                    var trig = triggerable[group];
-                    for (int i = 0; i < trig.Length; ++i)
-                    {
-                        HitWireSingle(trig[i]);
-                    }
-                }
+                HitGroup(group);
             }
             WiringWrapper.running = false;
             Wiring.running = false;
@@ -468,13 +474,25 @@ namespace WiringUtils
                     NetMessage.SendData(MessageID.PoofOfSmoke, -1, -1, null, (int)position.X, position.Y);
                     return;
                 }
-                WiringWrapper._GatesNext.Enqueue(new Point16(X, gateY));
+                WiringWrapper._GatesCurrent.Enqueue(new Point16(X, gateY));
             }
         }
 
         /**********************************************************************
          * Public Functions
          *********************************************************************/
+
+        /*
+         * Hit one specific point
+         */
+        public static void HitPoint(Point16 p)
+        {
+            for (int c = 0; c < colors; ++c)
+            {
+                int group = wireGroup[p.X, p.Y, c];
+                if (group != -1) HitGroup(group);
+            }
+        }
 
         /*
          * Preprocess the world into logical wire groups to speed up processing
