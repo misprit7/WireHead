@@ -607,6 +607,7 @@ namespace WiringUtils
             if (Main.netMode == NetmodeID.Server)
             {
                 SyncClients();
+                Console.WriteLine("Sync complete");
             }
         }
     }

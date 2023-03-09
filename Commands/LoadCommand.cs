@@ -100,7 +100,7 @@ namespace WiringUtils.Commands
                 t.TileFrameX = (short)(18 * bit);
             });
             sr.Close();
-            PrintSuccess("Successfully written!");
+            PrintSuccess("Write complete");
         }
 
         private static void Read(string file)
@@ -124,7 +124,7 @@ namespace WiringUtils.Commands
                 }
             });
             sw.Close();
-            PrintSuccess("Successfully read!");
+            PrintSuccess("Read complete");
         }
 
         public static void Exec(string[] args)

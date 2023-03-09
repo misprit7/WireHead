@@ -18,10 +18,11 @@ namespace WiringUtils.Commands
                 case "preprocess":
                 case "p":
                     Accelerator.Preprocess();
-                    Console.WriteLine("Preprocessing completed");
+                    Console.WriteLine("Preprocessing complete");
                     break;
                 case "sync":
                 case "s":
+                    // Print to console later once sync is actually finished
                     Accelerator.shouldSync = true;
                     break;
                 case "enable":
@@ -31,6 +32,7 @@ namespace WiringUtils.Commands
                         WiringUtils.AddEvents();
                         Accelerator.Preprocess();
                     }
+                    Console.WriteLine("Accelerator enabled");
                     break;
                 case "disable":
                 case "d":
@@ -39,6 +41,7 @@ namespace WiringUtils.Commands
                         Accelerator.BringInSync();
                         WiringUtils.RemoveEvents();
                     }
+                    Console.WriteLine("Accelerator disabled");
                     break;
                 default:
                     throw new UsageException("cmd not recognized");

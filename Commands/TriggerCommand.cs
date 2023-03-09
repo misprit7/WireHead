@@ -20,6 +20,7 @@ namespace WiringUtils.Commands
                 int x = int.Parse(args[0]);
                 int y = int.Parse(args[1]);
                 Terraria.Wiring.TripWire(x, y, 1, 1);
+                Console.WriteLine("Trigger complete");
             }
             catch
             {
