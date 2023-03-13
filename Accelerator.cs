@@ -13,7 +13,7 @@ using Terraria.Enums;
 using Terraria.ID;
 using Terraria.ModLoader;
 
-namespace WiringUtils
+namespace WireHead
 {
     // This is heavily based off of https://github.com/RussDev7/WireShark
     // There are some questionable software engineering choices made there though so I wanted to rewrite it

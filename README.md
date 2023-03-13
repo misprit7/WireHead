@@ -1,7 +1,7 @@
 <h1 align="center">
   <picture><img src="./doc/img/logo.png" height="400"/></picture>
   <br />
-  WiringUtils
+  WireHead
 </h1>
 
 A Terraria mod

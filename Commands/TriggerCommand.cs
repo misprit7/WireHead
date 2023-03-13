@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Terraria.ModLoader;
 
-namespace WiringUtils.Commands
+namespace WireHead.Commands
 {
     internal class TriggerShared
     {

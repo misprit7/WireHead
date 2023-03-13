@@ -6,7 +6,7 @@ using Terraria.ModLoader;
 using Terraria;
 
 
-namespace WiringUtils.Commands
+namespace WireHead.Commands
 {
     internal class LoadShared
     {

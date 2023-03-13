@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Terraria.ModLoader;
 
-namespace WiringUtils.Commands
+namespace WireHead.Commands
 {
     internal class AccelShared
     {
@@ -27,19 +27,19 @@ namespace WiringUtils.Commands
                     break;
                 case "enable":
                 case "e":
-                    if (WiringUtils.vanillaWiring)
+                    if (WireHead.vanillaWiring)
                     {
-                        WiringUtils.AddEvents();
+                        WireHead.AddEvents();
                         Accelerator.Preprocess();
                     }
                     Console.WriteLine("Accelerator enabled");
                     break;
                 case "disable":
                 case "d":
-                    if (!WiringUtils.vanillaWiring)
+                    if (!WireHead.vanillaWiring)
                     {
                         Accelerator.BringInSync();
-                        WiringUtils.RemoveEvents();
+                        WireHead.RemoveEvents();
                     }
                     Console.WriteLine("Accelerator disabled");
                     break;

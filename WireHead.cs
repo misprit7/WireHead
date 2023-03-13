@@ -1,6 +1,6 @@
 using Terraria.ModLoader;
 using Terraria.IO;
-using WiringUtils.Commands;
+using WireHead.Commands;
 using System;
 using Steamworks;
 using Terraria;
@@ -10,9 +10,9 @@ using Terraria.DataStructures;
 using Terraria.GameContent.Tile_Entities;
 using IL.Terraria.ID;
 
-namespace WiringUtils
+namespace WireHead
 {
-	public class WiringUtils : Mod
+	public class WireHead : Mod
 	{
 
         public static bool vanillaWiring = false;
@@ -243,7 +243,7 @@ namespace WiringUtils
         }
     }
 
-    public class WiringUtilsSystem : ModSystem
+    public class WireHeadSystem : ModSystem
     {
         public override void OnWorldLoad()
         {
@@ -252,14 +252,14 @@ namespace WiringUtils
 
         public override void PreSaveAndQuit()
         {
-            if (!WiringUtils.vanillaWiring)
+            if (!WireHead.vanillaWiring)
                 Accelerator.BringInSync();
             base.PreSaveAndQuit();
         }
 
         public override void PostUpdateWorld()
         {
-            if (!WiringUtils.vanillaWiring && Accelerator.shouldSync)
+            if (!WireHead.vanillaWiring && Accelerator.shouldSync)
             {
                 Accelerator.BringInSync();
                 Accelerator.shouldSync = false;

@@ -7,7 +7,7 @@ using Terraria.GameContent.Events;
 using Terraria.GameContent.UI;
 using Terraria.ID;
 using Terraria.Localization;
-using WiringUtils;
+using WireHead;
 
 /*
  * This is a wrapper for decompiled wiring code with some small changes to make it compatible with tModLoader

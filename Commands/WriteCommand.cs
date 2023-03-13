@@ -3,7 +3,7 @@ using System;
 using Terraria;
 using Terraria.ModLoader;
 
-namespace WiringUtils.Commands
+namespace WireHead.Commands
 {
     public class WriteCommand : ModCommand
     {
