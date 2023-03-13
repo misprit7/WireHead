@@ -1,1 +1,8 @@
-A mod to accelerate wiring and provide command line interface for reading/writing to game
+This improves the wiring system of Terraria for high complexity circuits greatly. Chiefly it does the following two things: 
+- Reimplements Terraria's wiring system in a much, much more efficient way that allows much faster circuits while maintaining pure vanilla logic
+- Provides an interface to interface with the game through the command line, mainly by writing binary files into large swathes of logic lamps
+
+Checkout the github page (see the homepage link below) for documentation on specifically how to use it. 
+
+If you don't know what any of this means, then this mod probably isn't for you. 
+

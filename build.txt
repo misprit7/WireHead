@@ -1,3 +1,4 @@
-displayName = Wiring Utils
+displayName = WireHead
 author = misprit7
-version = 0.1
+homepage = https://github.com/misprit7/WireHead
+version = 1.0
