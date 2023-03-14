@@ -3,6 +3,11 @@
   <br />
   WireHead
 </h1>
+<div align="center">
+  <a href=https://github.com/misprit7/computerraria/actions/workflows/tests.yml>
+    <img src=https://github.com/misprit7/computerraria/actions/workflows/tests.yml/badge.svg/>
+  </a>
+</div>
 
 A Terraria mod that drastically increases the capabilities of complex wiring projects. Chiefly it does the following: 
 1. Reimplements Terraria's wiring system in a much, much more efficient way that allows much faster circuits while maintaining pure vanilla logic
