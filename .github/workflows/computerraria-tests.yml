@@ -9,7 +9,10 @@ jobs:
     name: Send Repository Trigger
     runs-on: ubuntu-latest
     steps:
-      - name: Send curl event
+      - name: Send gh command
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
-          curl -XPOST -u "${{ secrets.PAT_USERNAME}}:${{secrets.PAT_TOKEN}}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/misprit7/computerraria/actions/workflows/build.yaml/dispatches --data '{"ref": "master"}'
+          gh workflow --repo misprit7/computerraria run tests.yml
+
 
