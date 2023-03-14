@@ -10,6 +10,7 @@ using Terraria.DataStructures;
 using Terraria.GameContent.Tile_Entities;
 using IL.Terraria.ID;
 
+
 namespace WireHead
 {
 	public class WireHead : Mod
