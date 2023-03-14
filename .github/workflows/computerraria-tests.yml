@@ -11,5 +11,5 @@ jobs:
     steps:
       - name: Send curl event
         run: |
-          curl -XPOST -u "${{ secrets.PAT_USERNAME}}:${{secrets.PAT_TOKEN}}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/misprit7/computerraria/dispatches --data '{"event_type": "build_application"}'
+          curl -XPOST -u "${{ secrets.PAT_USERNAME}}:${{secrets.PAT_TOKEN}}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/misprit7/computerraria/actions/workflows/build.yaml/dispatches --data '{"ref": "master"}'
 
