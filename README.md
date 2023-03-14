@@ -1,5 +1,5 @@
 <h1 align="center">
-  <picture><img src="./doc/img/logo.png" height="400"/></picture>
+  <picture><img src="./doc/img/logo.apng" height="400"/></picture>
   <br />
   WireHead
 </h1>
@@ -21,7 +21,7 @@ The target audience of this explanation is someone on the level of a college lev
 ### Justification
 
 <div align=center>
-  <img src="doc/img/simple.png"/>
+  <img src="doc/img/simple.apng"/>
 </div>
 <div align=center>Example 1: A simple mechanism with a long wire</div>
 
@@ -32,7 +32,7 @@ This is clearly extremely suboptimal if high performance is desired. Every time 
 ### Groups
 
 <div align=center>
-  <img src="doc/img/groups.png"/>
+  <img src="doc/img/groups.apng"/>
 </div>
 <div align=center>Example 2: Showcasing how groups are formed</div>
 
@@ -53,7 +53,7 @@ Once we've done all this precompilation, triggering a wire goes from $O(n)$ to $
 I was slightly misleading in the previous section. I claimed that using group caching the time complexity was reduced from $O(n)$ to $O(1)$. To see where this can still sometimes fail, consider the following circuit: 
 
 <div align=center>
-  <img src="doc/img/simple-ram.png"/>
+  <img src="doc/img/simple-ram.apng"/>
 </div>
 <div align=center>Example 3: Demonstration of when the number of outputs is large</div>
 
@@ -62,8 +62,8 @@ Even if we precompute which tiles to trigger every time the switch is pressed, w
 You might wonder, does this matter? The example circuit I gave seems to be rather contrived, and most circuits in for example an ALU have very few outputs per group. Unfortunately however, there's one extremely universal circuit component that requires it: memory. Even if you're extremely clever about how you go about designing it, you will inevitibally have to traverse the width of memory at least once on each random access (I'd be interested in anyone has a satisfying proof of this, but regardless I'm fairly certain it's true). The approach taken in [Computerraria](https://github.com/misprit7/computerraria) is that of a binary tree, so a very simplified version of this will be used here for example. 
 
 <div align=center>
-  <img src="doc/img/binary-tree-on.png"/>
-  <img src="doc/img/binary-tree-off.png"/>
+  <img src="doc/img/binary-tree-on.apng"/>
+  <img src="doc/img/binary-tree-off.apng"/>
 </div>
 <div align=center>Example 4: A simple binary tree structure that models ram</div>
 
@@ -79,7 +79,7 @@ To solve this issue, we can make an important observation. Of all the types of w
 - Triggerable: Tiles that react to a wire pulse but not in a simple two state way, e.g. pumps, teleporters
 
 <div align=center>
-  <img src="doc/img/categories.png"/>
+  <img src="doc/img/categories.apng"/>
 </div>
 <div align=center>Example 5: Examples of the different categories - left is triggers, middle is toggleable, right is triggerable</div>
 
