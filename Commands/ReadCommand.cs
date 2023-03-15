@@ -32,7 +32,8 @@ namespace WireHead.Commands
             }
             if (Main.tile[x, y].TileType != 419)
                 throw new UsageException($"Tried to read something that wasn't a gate, x: {x}, y: {y}");
-            Console.WriteLine(Main.tile[x,y].TileFrameX != 0 ? 1 : 0);
+            bool state = Accelerator.TileState(x, y);
+            Console.WriteLine(state ? 1 : 0);
         }
     }
 }

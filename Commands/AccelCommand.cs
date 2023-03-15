@@ -23,7 +23,7 @@ namespace WireHead.Commands
                 case "sync":
                 case "s":
                     // Print to console later once sync is actually finished
-                    Accelerator.shouldSync = true;
+                    WireHead.toExec.Enqueue(Accelerator.BringInSync);
                     break;
                 case "enable":
                 case "e":

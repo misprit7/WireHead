@@ -15,7 +15,7 @@ using Terraria.ModLoader;
 
 namespace WireHead
 {
-    // This is heavily based off of https://github.com/RussDev7/WireShark
+    // This lightly inspired by https://github.com/RussDev7/WireShark
     // There are some questionable software engineering choices made there though so I wanted to rewrite it
     internal static class Accelerator
     {
@@ -56,8 +56,14 @@ namespace WireHead
         // Groups that are out of sync with the world, value is original state of group
         public static bool[] groupOutOfSync;
 
-        // Whether to sync on next tick, used to make sure sync is always called on proper thread
-        public static bool shouldSync;
+        
+        /**********************************************************************
+         * Monitor Variables
+         *********************************************************************/
+        
+        public static int clockGroup = -1;
+        public static int clockCount = 0;
+        public static int clockMax = int.MaxValue;
 
         /**********************************************************************
          * Construction Variables
@@ -361,6 +367,7 @@ namespace WireHead
 
         }
 
+        // Being smarter than this requires run time performance hit, so real time is optimized
         private static void SyncClients()
         {
             for (int x = 0; x < Main.maxTilesX; ++x)
@@ -419,6 +426,17 @@ namespace WireHead
                     groupOutOfSync[group] = !groupOutOfSync[group];
                     // If all toggleable then no need to directly trigger them
                     groupState[group] = !groupState[group];
+                    if (group == clockGroup && !groupState[group])
+                    {
+                        ++clockCount;
+                        if (clockCount > clockMax)
+                        {
+                            Console.WriteLine("Clock Finished");
+                            clockCount = 0;
+                            clockGroup = -1;
+                            clockMax = int.MaxValue;
+                        }
+                    }
                 }
                 else
                 {
@@ -475,6 +493,29 @@ namespace WireHead
         /**********************************************************************
          * Public Functions
          *********************************************************************/
+         
+        /*
+         * Gets current true value of tile state
+         * Only compatible with logic gates and candles
+         */
+        public static bool TileState(int x, int y)
+        {
+            Tile tile = Main.tile[x, y];
+            bool ret = false;
+            if (tile.TileType == TileID.LogicGateLamp)
+            {
+                ret = tile.TileFrameX != 0;
+            } else if (tile.TileType == TileID.Candles)
+            {
+                ret = tile.TileFrameX == 0;
+            }
+            else
+            {
+                throw new UsageException("Attempted to read unsupported tile");
+            }
+
+            return ret != ShouldChange(x, y);
+        }
 
         /*
          * Preprocess the world into logical wire groups to speed up processing

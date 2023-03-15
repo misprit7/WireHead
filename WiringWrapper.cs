@@ -429,7 +429,7 @@ namespace Terraria
             }
         }
 
-        private static void TripWire(int left, int top, int width, int height)
+        public static void TripWire(int left, int top, int width, int height)
         {
             if (Main.netMode == 1)
                 return;

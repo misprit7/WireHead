@@ -2,6 +2,7 @@ using Terraria.ModLoader;
 using Terraria.IO;
 using WireHead.Commands;
 using System;
+using System.Collections.Concurrent;
 using Steamworks;
 using Terraria;
 using SteelSeries.GameSense;
@@ -13,9 +14,10 @@ using IL.Terraria.ID;
 namespace WireHead
 {
 	public class WireHead : Mod
-	{
+    {
 
         public static bool vanillaWiring = false;
+        public static ConcurrentQueue<Action> toExec = new ConcurrentQueue<Action>();
 
         private static void UpdateConnectedClients(On.Terraria.Netplay.orig_UpdateConnectedClients orig)
         {
@@ -259,12 +261,13 @@ namespace WireHead
 
         public override void PostUpdateWorld()
         {
-            if (!WireHead.vanillaWiring && Accelerator.shouldSync)
+            foreach (var action in WireHead.toExec)
             {
-                Accelerator.BringInSync();
-                Accelerator.shouldSync = false;
+                action();
             }
 
+            WireHead.toExec.Clear();
+            
             base.PostUpdateWorld();
         }
     }

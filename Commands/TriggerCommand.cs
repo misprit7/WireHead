@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Terraria;
 using Terraria.ModLoader;
 
 namespace WireHead.Commands
@@ -19,7 +20,10 @@ namespace WireHead.Commands
                 
                 int x = int.Parse(args[0]);
                 int y = int.Parse(args[1]);
-                Terraria.Wiring.TripWire(x, y, 1, 1);
+                if(WireHead.vanillaWiring)
+                    WireHead.toExec.Enqueue(() => Terraria.Wiring.TripWire(x, y, 1, 1));
+                else
+                    WireHead.toExec.Enqueue(() => WiringWrapper.TripWire(x, y, 1, 1));
                 Console.WriteLine("Trigger complete");
             }
             catch

@@ -3,15 +3,20 @@
   <br />
   WireHead
 </h1>
+<h2 align="center">
+  A drastically faster reimplementation of Terraria wiring
+</h2>
 <div align="center">
   <a href=https://github.com/misprit7/computerraria/actions/workflows/tests.yml>
     <img src=https://github.com/misprit7/computerraria/actions/workflows/tests.yml/badge.svg/>
   </a>
 </div>
 
-A Terraria mod that drastically increases the capabilities of complex wiring projects. Chiefly it does the following: 
+# Summary
+
+A Terraria mod that significantly increases the capabilities of complex wiring projects. Chiefly it does the following: 
 1. Reimplements Terraria's wiring system in a much, much more efficient way that allows much faster circuits while maintaining pure vanilla logic
-2. Provides an interface to interface with the game through the command line, mainly by writing binary files into large swathes of logic lamps
+2. Provides an commands to interface with the game through the command line, mainly by writing binary files into large swathes of logic lamps
 
 WireHead was developed for the [Computerraria](https://github.com/misprit7/computerraria/tree/main) project so all the features are directly useful there, although it has been developed with general use cases in mind and any large scale wiring projects should be able to easily integrate it with little to no modifications. 
 
@@ -19,7 +24,7 @@ WireHead was developed for the [Computerraria](https://github.com/misprit7/compu
 
 Terraria's vanilla wiring system is extremely naive. Even without any computer science knowledge it's possible to improve it, and with some additional thought it's possible to gain many orders of magnitude of performance. 
 
-The target audience of this explanation is someone on the level of a college level computer science student as well as a moderate amount of experience with Terraria wiring, so if you don't know what big O notation is or you've never heard of a junction box it probably won't make a ton of sense. Before reading I would highly encourage you to get a decompiled version of the Terraria source code. This can be pretty easily Googled, or ideally follow [this guide](https://github.com/tModLoader/tModLoader/wiki/tModLoader-guide-for-contributors) to decompile it for yourself with proper intellisense. 
+The target audience of this explanation is a computer science university student with at least a moderate amount of experience with Terraria wiring, so if you don't know what big O notation is or you've never heard of a faulty logic lamp it probably won't make a ton of sense. Before reading I would highly encourage you to get a decompiled version of the Terraria source code. This can be pretty easily Googled, or ideally follow [this guide](https://github.com/tModLoader/tModLoader/wiki/tModLoader-guide-for-contributors) to decompile it for yourself with proper intellisense. 
 
 ## Optimization 1: Group Caching
 
@@ -32,7 +37,7 @@ The target audience of this explanation is someone on the level of a college lev
 
 When a source is triggered (e.g. a switch is clicked), vanilla Terraria conducts a breadth first search along the entire wire, hitting each output along the way. For example, in the image above when the switch is clicked, the game would start on the leftmost wire tile, check in each direction (up/down/right/left), realize there's a wire to the right and continue in that direction. This would repeat until no more wires can be reached. 
 
-This is clearly extremely suboptimal if high performance is desired. Every time the switch is clicked it takes $O(n)$ time to toggle the candle on the right, where $n$ is the length of the wire, despite only one bit being transmitted. The solution to this is to precompute all the wire connections and all mechanisms attached to each. We define a __group__ to be a set of blocks with wires of a certain color, and each group receives a unique identifying integer. To make this more clear, consider the following scenario: 
+This is clearly extremely suboptimal if high performance is desired. Every time the switch is clicked it takes $O(n)$ time to toggle the candle on the right, where $n$ is the length of the wire, despite only one bit being transmitted. The solution to this is to precompute all the wire connections and all mechanisms attached to each. I define a __group__ to be a set of connected blocks with wires of a certain color, and each group receives a unique identifying integer. To make this more clear, consider the following scenario: 
 
 ### Groups
 
