@@ -27,7 +27,7 @@ public class Monitor
                             throw new UsageException("Too few arguments");
                         if (args[i + 1] == "count" || args[i + 1] == "c")
                         {
-                            Console.WriteLine(Accelerator.clockCount);
+                            Console.WriteLine($"Clock count complete: {Accelerator.clockCount}");
                             ++i;
                             break;
                         }

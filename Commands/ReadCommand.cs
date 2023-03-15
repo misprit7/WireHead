@@ -33,7 +33,7 @@ namespace WireHead.Commands
             if (Main.tile[x, y].TileType != 419)
                 throw new UsageException($"Tried to read something that wasn't a gate, x: {x}, y: {y}");
             bool state = Accelerator.TileState(x, y);
-            Console.WriteLine(state ? 1 : 0);
+            Console.WriteLine($"Read complete: {(state ? 1 : 0)}");
         }
     }
 }

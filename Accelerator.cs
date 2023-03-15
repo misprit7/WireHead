@@ -419,6 +419,18 @@ namespace WireHead
                 else alreadyHit.Add(group);
 
                 if (group == -1) continue;
+                
+                if (group == clockGroup)
+                {
+                    ++clockCount;
+                    if (clockCount > clockMax)
+                    {
+                        Console.WriteLine("Clock finished");
+                        clockCount = 0;
+                        clockGroup = -1;
+                        clockMax = int.MaxValue;
+                    }
+                }
 
                 if (groupToggleable[group])
                 {
@@ -426,17 +438,6 @@ namespace WireHead
                     groupOutOfSync[group] = !groupOutOfSync[group];
                     // If all toggleable then no need to directly trigger them
                     groupState[group] = !groupState[group];
-                    if (group == clockGroup && !groupState[group])
-                    {
-                        ++clockCount;
-                        if (clockCount > clockMax)
-                        {
-                            Console.WriteLine("Clock Finished");
-                            clockCount = 0;
-                            clockGroup = -1;
-                            clockMax = int.MaxValue;
-                        }
-                    }
                 }
                 else
                 {
