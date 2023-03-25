@@ -40,11 +40,19 @@ namespace WireHead
         // Used to be hash set but hash set lookup was performance bottleneck so flat array should be faster
         public static bool[,] standardLamps;
 
+        // Set of groups that were triggered in this iteration
+        // Used for pixel boxes
+        public static int[] groupsTriggered;
+        public static int numGroupsTriggered;
+
         // Toggleable/triggerable tiles attached to each point
         // First index is group, second is list of tiles
         // uint is a bit concatenation of both 16 bit x,y coordinates
         public static uint[][] toggleable;
         public static uint[][] triggerable;
+
+        // For each group, contains all other groups that could make a pixel box trigger
+        public static Dictionary<int, uint>[] pixelBoxes;
 
         // Number of total groups
         // All arrays indexed by groups are guaranteed to be of this size
@@ -419,6 +427,8 @@ namespace WireHead
                 else alreadyHit.Add(group);
 
                 if (group == -1) continue;
+
+                groupsTriggered[numGroups++] = group;
                 
                 if (group == clockGroup)
                 {
