@@ -1,2 +1,2 @@
 Add this to launchSettings.json for Rider to work: 
-"executablepath": "/home/xander/.local/share/Steam/steamapps/common/tModLoader/dotnet/6.0.0/dotnet",
+"executablePath": "/home/xander/.local/share/Steam/steamapps/common/tModLoader/dotnet/6.0.0/dotnet",
