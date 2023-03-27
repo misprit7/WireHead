@@ -562,33 +562,37 @@ namespace Terraria
 
         private static void PixelBoxPass()
         {
-            foreach (KeyValuePair<Point16, byte> pixelBoxTrigger in _PixelBoxTriggers)
-            {
-                if (pixelBoxTrigger.Value == 2)
-                    continue;
-
-                if (pixelBoxTrigger.Value == 1)
-                {
-                    if (Main.tile[pixelBoxTrigger.Key.X, pixelBoxTrigger.Key.Y].TileFrameX != 0)
-                    {
-                        Main.tile[pixelBoxTrigger.Key.X, pixelBoxTrigger.Key.Y].TileFrameX = 0;
-                        NetMessage.SendTileSquare(-1, pixelBoxTrigger.Key.X, pixelBoxTrigger.Key.Y);
-                    }
-                }
-                else if (pixelBoxTrigger.Value == 3 && Main.tile[pixelBoxTrigger.Key.X, pixelBoxTrigger.Key.Y].TileFrameX != 18)
-                {
-                    Main.tile[pixelBoxTrigger.Key.X, pixelBoxTrigger.Key.Y].TileFrameX = 18;
-                    NetMessage.SendTileSquare(-1, pixelBoxTrigger.Key.X, pixelBoxTrigger.Key.Y);
-                }
-            }
-
-            _PixelBoxTriggers.Clear();
+            // Pixel boxes are handled by accelerator
+            // foreach (KeyValuePair<Point16, byte> pixelBoxTrigger in _PixelBoxTriggers)
+            // {
+            //     if (pixelBoxTrigger.Value == 2)
+            //         continue;
+            //
+            //     if (pixelBoxTrigger.Value == 1)
+            //     {
+            //         if (Main.tile[pixelBoxTrigger.Key.X, pixelBoxTrigger.Key.Y].TileFrameX != 0)
+            //         {
+            //             Main.tile[pixelBoxTrigger.Key.X, pixelBoxTrigger.Key.Y].TileFrameX = 0;
+            //             NetMessage.SendTileSquare(-1, pixelBoxTrigger.Key.X, pixelBoxTrigger.Key.Y);
+            //         }
+            //     }
+            //     else if (pixelBoxTrigger.Value == 3 && Main.tile[pixelBoxTrigger.Key.X, pixelBoxTrigger.Key.Y].TileFrameX != 18)
+            //     {
+            //         Main.tile[pixelBoxTrigger.Key.X, pixelBoxTrigger.Key.Y].TileFrameX = 18;
+            //         NetMessage.SendTileSquare(-1, pixelBoxTrigger.Key.X, pixelBoxTrigger.Key.Y);
+            //     }
+            // }
+            //
+            // _PixelBoxTriggers.Clear();
         }
 
         private static void LogicGatePass()
         {
             if (_GatesCurrent.Count != 0)
                 return;
+            
+            // Reset groups triggered
+            Accelerator.numGroupsTriggered = 0;
 
             _GatesDone.Clear();
             while (_LampsToCheck.Count > 0)
@@ -615,6 +619,8 @@ namespace Terraria
                         TripWire(key.X, key.Y, 1, 1);
                         _GatesCurrent.Dequeue();
                     }
+                    // Reset groups triggered
+                    Accelerator.numGroupsTriggered = 0;
                 }
             }
 

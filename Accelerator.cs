@@ -42,8 +42,9 @@ namespace WireHead
 
         // Set of groups that were triggered in this iteration
         // Used for pixel boxes
+        // List.Clear is O(n) for idiotic reasons so I'm recreating it as an array
         public static int[] groupsTriggered;
-        public static int numGroupsTriggered;
+        public static int numGroupsTriggered = 0;
 
         // Toggleable/triggerable tiles attached to each point
         // First index is group, second is list of tiles
@@ -52,6 +53,8 @@ namespace WireHead
         public static uint[][] triggerable;
 
         // For each group, contains all other groups that could make a pixel box trigger
+        // Assumes that each pair of 2 groups only attaches to one pixel box
+        // If you wanted to remove this assumtion it should be a list of (int, uints) instead
         public static Dictionary<int, uint>[] pixelBoxes;
 
         // Number of total groups
@@ -199,6 +202,21 @@ namespace WireHead
                     toggleableDict[group].Add(new Point16(x, y));
                 }
             }
+            else if (tile.TileType == TileID.PixelBox)
+            {
+                for (int col = 0; col < colors; ++col)
+                {
+                    if (col == c) continue;
+                    int g = wireGroup[x, y, col];
+                    if (g != -1)
+                    {
+                        pixelBoxes[g][group] = xy2uint(x, y);
+                        pixelBoxes[group][g] = xy2uint(x, y);
+                    }
+                }
+
+                groupToggleable[group] = false;
+            }
             else if (triggeredIDs.Contains(tile.TileType))
             {
                 triggerableDict[group].Add(new Point16(x, y));
@@ -285,14 +303,30 @@ namespace WireHead
                 Main.tile[x, gateY].TileFrameX == 36;
         }
 
+        /*
+         * Toggle a logic lamp
+         */
         private static void ToggleLamp(int x, int y)
         {
             // Don't call WorldGen.SquareTileFrame and NetMessage.SendTileSquare
             // Also don't enqueue check since it isn't needed
-            // TODO: add way to sync multiplayer
             Tile tile = Main.tile[x, y];
             if (tile.TileFrameX == 0) tile.TileFrameX = 18;
             else if (tile.TileFrameX == 18) tile.TileFrameX = 0;
+        }
+
+        /*
+         * Toggles a pixel box
+         */
+        private static void TogglePixelBox(int x, int y)
+        {
+            Tile tile = Main.tile[x, y];
+            if (tile.TileFrameX == 0) tile.TileFrameX = 18;
+            else if (tile.TileFrameX == 18) tile.TileFrameX = 0;
+            if (Main.netMode == NetmodeID.Server)
+            {
+                NetMessage.SendTileSquare(-1, x, y);
+            }
         }
 
         /*
@@ -401,6 +435,13 @@ namespace WireHead
             uint y = (uint)p.Y;
             return x | y;
         }
+
+        private static uint xy2uint(int x, int y)
+        {
+            uint x1 = ((uint)x) << 16;
+            uint y1 = (uint)y;
+            return x1 | y1;
+        }
         private static Point16 uint2Point(uint p)
         {
             return new Point16((short)(p >> 16), (short)(p & 0xFFFF));
@@ -428,7 +469,7 @@ namespace WireHead
 
                 if (group == -1) continue;
 
-                groupsTriggered[numGroups++] = group;
+                groupsTriggered[numGroupsTriggered++] = group;
                 
                 if (group == clockGroup)
                 {
@@ -463,6 +504,20 @@ namespace WireHead
                     for (int i = 0; i < trig.Length; ++i)
                     {
                         HitWireSingle(trig[i]);
+                    }
+
+                    // Only bother checking pixel boxes if some are attached to this group
+                    if (pixelBoxes[group].Count != 0)
+                    {
+                        for (int i = 0; i < numGroupsTriggered; ++i)
+                        {
+                            int g = groupsTriggered[i];
+                            if (pixelBoxes[group].ContainsKey((g)))
+                            {
+                                Point16 point = uint2Point(pixelBoxes[group][g]);
+                                TogglePixelBox(point.X, point.Y);
+                            }
+                        }
                     }
                 }
             }
@@ -543,7 +598,6 @@ namespace WireHead
             toggleableDict = new Dictionary<int, HashSet<Point16>>();
             triggerableDict = new Dictionary<int, HashSet<Point16>>();
 
-
             for (int x = 0; x < Main.maxTilesX; ++x)
             {
                 for (int y = 0; y < Main.maxTilesY; ++y)
@@ -568,10 +622,11 @@ namespace WireHead
             }
 
             int group = 0;
-            numGroups = 1;
+            numGroups = 1 << 10;
             groupToggleable = new bool[numGroups];
             groupState = new bool[numGroups];
             groupOutOfSync = new bool[numGroups];
+            pixelBoxes = new Dictionary<int, uint>[numGroups];
             for (int x = 0; x < Main.maxTilesX; ++x)
             {
                 for (int y = 0; y < Main.maxTilesY; ++y)
@@ -588,6 +643,7 @@ namespace WireHead
                                 Array.Resize(ref groupToggleable, numGroups);
                                 Array.Resize(ref groupState, numGroups);
                                 Array.Resize(ref groupOutOfSync, numGroups);
+                                Array.Resize(ref pixelBoxes, numGroups);
                             }
                             groupToggleable[group] = true;
                             groupState[group] = false;
@@ -595,6 +651,7 @@ namespace WireHead
 
                             toggleableDict[group] = new HashSet<Point16>();
                             triggerableDict[group] = new HashSet<Point16>();
+                            pixelBoxes[group] = new Dictionary<int, uint>();
                             // Guaranteed not to start on junction box so don't care about prevX,Y
                             FindGroup(x, y, x, y, c, group);
                             ++group;
@@ -626,6 +683,7 @@ namespace WireHead
 
             toggleableDict.Clear();
             triggerableDict.Clear();
+            groupsTriggered = new int[numGroups];
 
         }
 

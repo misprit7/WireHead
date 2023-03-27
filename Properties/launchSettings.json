@@ -2,7 +2,7 @@
   "profiles": {
     "Terraria": {
       "commandName": "Executable",
-      "executablePath": "dotnet",
+      "executablePath": "/home/xander/.local/share/Steam/steamapps/common/tModLoader/dotnet/6.0.0/dotnet",
       "commandLineArgs": "$(tMLPath)",
       "workingDirectory": "$(tMLSteamPath)"
     },
