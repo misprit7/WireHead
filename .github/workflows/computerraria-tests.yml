@@ -13,6 +13,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
-          gh workflow --repo misprit7/computerraria run tests.yml
+          gh workflow --repo misprit7/computerraria run in-game-tests.yml
 
 

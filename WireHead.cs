@@ -268,7 +268,6 @@ namespace WireHead
             }
 
             WireHead.toExec.Clear();
-            
             base.PostUpdateWorld();
         }
     }
