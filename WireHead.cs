@@ -259,7 +259,8 @@ namespace WireHead
             base.PreSaveAndQuit();
         }
 
-        public override void PostUpdateWorld()
+        // This used to be PostUpdateWorld, have no idea why it randomly broke
+        public override void PostUpdatePlayers()
         {
             foreach (var action in WireHead.toExec)
             {

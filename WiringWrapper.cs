@@ -2603,7 +2603,8 @@ namespace Terraria
             if (type == 314 || (uint)(type - 386) <= 3u || type == 476)
                 flag = false;
 
-            if (flag && (Main.tile[i, j - 1].IsActuated || (!TileID.Sets.BasicChest[Main.tile[i, j - 1].TileType] && Main.tile[i, j - 1].TileType != 26 && Main.tile[i, j - 1].TileType != 77 && Main.tile[i, j - 1].TileType != 88 && Main.tile[i, j - 1].TileType != 470 && Main.tile[i, j - 1].TileType != 475 && Main.tile[i, j - 1].TileType != 237 && Main.tile[i, j - 1].TileType != 597 && WorldGen.CanKillTile(i, j - 1))))
+            // Removed can kill requirement because it was interfering with actuators
+            if (flag && (Main.tile[i, j - 1].IsActuated || (!TileID.Sets.BasicChest[Main.tile[i, j - 1].TileType] && Main.tile[i, j - 1].TileType != 26 && Main.tile[i, j - 1].TileType != 77 && Main.tile[i, j - 1].TileType != 88 && Main.tile[i, j - 1].TileType != 470 && Main.tile[i, j - 1].TileType != 475 && Main.tile[i, j - 1].TileType != 237 && Main.tile[i, j - 1].TileType != 597/* && WorldGen.CanKillTile(i, j - 1)*/)))
             {
                 Tile tile = Main.tile[i, j];
                 tile.IsActuated = true;

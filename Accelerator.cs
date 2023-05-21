@@ -217,7 +217,7 @@ namespace WireHead
 
                 groupToggleable[group] = false;
             }
-            else if (triggeredIDs.Contains(tile.TileType))
+            else if (triggeredIDs.Contains(tile.TileType) || tile.HasActuator)
             {
                 triggerableDict[group].Add(new Point16(x, y));
                 groupToggleable[group] = false;
