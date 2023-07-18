@@ -3,6 +3,7 @@ using Terraria.IO;
 using WireHead.Commands;
 using System;
 using System.Collections.Concurrent;
+using System.Runtime.InteropServices;
 using Steamworks;
 using Terraria;
 using SteelSeries.GameSense;
@@ -93,6 +94,10 @@ namespace WireHead
             On.Terraria.Wiring.ToggleFirePlace -= Events.ToggleFirePlace;
             Wiring.Initialize();
         }
+
+        /* [DllImport("/home/xander/tmod-user/ModSources/WireHead/terracc/target/release/libterracc.so", EntryPoint = "add", ExactSpelling = true)] */
+        [DllImport("/usr/local/lib/libterracc.so", EntryPoint = "add", ExactSpelling = true)]
+        public static extern uint add(uint left, uint right);
 
         public override void Load()
         {

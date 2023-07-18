@@ -33,6 +33,7 @@ namespace WireHead.Commands
                         Accelerator.Preprocess();
                     }
                     Console.WriteLine("Accelerator enabled");
+                    Console.WriteLine($"abc{WireHead.add(1, 2)}");
                     break;
                 case "disable":
                 case "d":
