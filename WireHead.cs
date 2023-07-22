@@ -95,7 +95,6 @@ namespace WireHead
             Wiring.Initialize();
         }
 
-        /* [DllImport("/home/xander/tmod-user/ModSources/WireHead/terracc/target/release/libterracc.so", EntryPoint = "add", ExactSpelling = true)] */
         [DllImport("/usr/local/lib/libterracc.so", EntryPoint = "add", ExactSpelling = true)]
         public static extern uint add(uint left, uint right);
 
