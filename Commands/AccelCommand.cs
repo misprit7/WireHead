@@ -41,6 +41,7 @@ namespace WireHead.Commands
                     {
                         Accelerator.BringInSync();
                         WireHead.RemoveEvents();
+                        TerraCC.disable();
                     }
                     Console.WriteLine("Accelerator disabled");
                     break;

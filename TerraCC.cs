@@ -59,7 +59,7 @@ internal static class TerraCC
                 bool on = Main.tile[p.X, p.Y+1].TileFrameX == 18;
                 if(xor.Count > 0){
                     ret += "if(";
-                    if(on)
+                    if(!on)
                         ret += string.Join(" ^ ", xor);
                     else
                         ret += "!(" + string.Join(" ^ ", xor) + ")";
@@ -142,7 +142,7 @@ void trigger(int input_groups[][colors], uint32_t num_inputs){{
         }}
         
         int iter = 0;
-        while(num_trig > 0 && ){{
+        while(num_trig > 0){{
             if(iter >= max_depth){{
                 printf(""Max depth exceeded!\n"");
                 break;
@@ -184,7 +184,7 @@ int main(void){{
     uint8_t states[num_groups] = {{0}};
     read_states(states);
     for(int i = 0; i < num_groups; ++i){{
-        printf(""%d "", states[i]);
+        /* printf(""%d "", states[i]); */
     }}
     printf(""\n"");
 }}
@@ -211,8 +211,12 @@ int main(void){{
 
     public static void compile(){
         // Create a ProcessStartInfo object
-        ProcessStartInfo processInfo = new ProcessStartInfo("gcc", $"-fpic -shared -O3 -o {work_dir}{so_file_name} {work_dir}{c_file_name}");
+        ProcessStartInfo processInfo = new ProcessStartInfo(
+            "gcc",
+            $"-fpic -shared -O3 -o {work_dir}{so_file_name} {work_dir}{c_file_name}"
+        );
         processInfo.RedirectStandardOutput = true;
+        processInfo.RedirectStandardError = true;
         processInfo.UseShellExecute = false;
         processInfo.CreateNoWindow = true;
 

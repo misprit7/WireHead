@@ -258,6 +258,7 @@ namespace WireHead
         {
             if (!WireHead.vanillaWiring)
                 Accelerator.BringInSync();
+            TerraCC.disable();
             base.PreSaveAndQuit();
         }
 

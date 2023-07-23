@@ -713,14 +713,14 @@ internal static class Accelerator
     {
 
         if(WireHead.useTerracc){
-            Console.WriteLine("Before: " + groupState[7]);
+            /* Console.WriteLine("Before: " + groupState[7]); */
             byte[] states = new byte[numGroups];
             TerraCC.read_states(states);
             for(int i = 0; i < numGroups; ++i){
                 groupOutOfSync[i] = (states[i]==1) != groupState[i];
                 groupState[i] = states[i] == 1;
             }
-            Console.WriteLine("After: " + groupState[7]);
+            /* Console.WriteLine("After: " + groupState[7]); */
         }
 
         HashSet<uint> lampsVisited = new HashSet<uint>();
