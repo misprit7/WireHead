@@ -18,6 +18,7 @@ namespace WireHead
     {
 
         public static bool vanillaWiring = false;
+        public static bool useTerracc = true;
         public static ConcurrentQueue<Action> toExec = new ConcurrentQueue<Action>();
 
         private static void UpdateConnectedClients(On.Terraria.Netplay.orig_UpdateConnectedClients orig)
@@ -94,9 +95,6 @@ namespace WireHead
             On.Terraria.Wiring.ToggleFirePlace -= Events.ToggleFirePlace;
             Wiring.Initialize();
         }
-
-        [DllImport("/usr/local/lib/libterracc.so", EntryPoint = "add", ExactSpelling = true)]
-        public static extern uint add(uint left, uint right);
 
         public override void Load()
         {

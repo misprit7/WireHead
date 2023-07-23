@@ -15,7 +15,6 @@ using Terraria.ModLoader;
 
 namespace WireHead;
 
-
 // This lightly inspired by https://github.com/RussDev7/WireShark
 // There are some questionable software engineering choices made there though so I wanted to rewrite it
 internal static class Accelerator
@@ -40,6 +39,9 @@ internal static class Accelerator
     // Lookup array of "Standard" faulty lamp arrangments
     // Used to be hash set but hash set lookup was performance bottleneck so flat array should be faster
     public static bool[,] standardLamps;
+    // TO IMPLEMENT
+    // Mapping from group -> list of standard lamps this is top of
+    public static List<uint>[] groupStandardLamps;
 
     // Set of groups that were triggered in this iteration
     // Used for pixel boxes
@@ -430,20 +432,20 @@ internal static class Accelerator
      * Converts a point to/from a bitwise uint
      * Most significant 16 bits are x, least are y
      */
-    private static uint Point2uint(Point16 p)
+    internal static uint Point2uint(Point16 p)
     {
         uint x = ((uint)p.X) << 16;
         uint y = (uint)p.Y;
         return x | y;
     }
 
-    private static uint xy2uint(int x, int y)
+    internal static uint xy2uint(int x, int y)
     {
         uint x1 = ((uint)x) << 16;
         uint y1 = (uint)y;
         return x1 | y1;
     }
-    private static Point16 uint2Point(uint p)
+    internal static Point16 uint2Point(uint p)
     {
         return new Point16((short)(p >> 16), (short)(p & 0xFFFF));
     }
@@ -464,6 +466,14 @@ internal static class Accelerator
         {
             var p = next.PopFront();
             int group = wireGroup[p.X, p.Y, c];
+
+            // TODO: Shift this to wait for all wires to trigger
+            if(WireHead.useTerracc){
+                int[,] input_groups = new int[1,1];
+                input_groups[0,0] = group;
+                TerraCC.trigger(input_groups, 1);
+                continue;
+            }
 
             if (alreadyHit.Contains(group)) continue;
             else alreadyHit.Add(group);
@@ -666,10 +676,12 @@ internal static class Accelerator
         // Convert toggleableDict/triggerableDict to arrays
         toggleable = new uint[numGroups][];
         triggerable = new uint[numGroups][];
+        groupStandardLamps = new List<uint>[numGroups];
         for (int g = 0; g < numGroups; ++g)
         {
             toggleable[g] = new uint[toggleableDict[g].Count];
             triggerable[g] = new uint[triggerableDict[g].Count];
+            groupStandardLamps[g] = new List<uint>();
             int i = 0;
             foreach (Point16 p in toggleableDict[g])
             {
@@ -679,6 +691,9 @@ internal static class Accelerator
             foreach (Point16 p in triggerableDict[g])
             {
                 triggerable[g][i++] = Point2uint(p);
+                if (standardLamps[p.X, p.Y]){
+                    groupStandardLamps[g].Add(Point2uint(p));
+                }
             }
         }
 
@@ -693,6 +708,11 @@ internal static class Accelerator
      */
     public static void BringInSync()
     {
+
+        if(WireHead.useTerracc){
+            TerraCC.read_states(out groupState);
+        }
+
         HashSet<uint> lampsVisited = new HashSet<uint>();
 
         for (int g = 0; g < numGroups; ++g)
@@ -722,13 +742,4 @@ internal static class Accelerator
         }
     }
 
-    /*
-     * Writes wwld (wiring world) file to disk
-     */
-    /* public static void WriteWwld(string path){ */
-    /*     using (StreamWriter writer = new StreamWriter(filePath)) */
-    /*     { */
-            
-    /*     } */
-    /* } */
 }

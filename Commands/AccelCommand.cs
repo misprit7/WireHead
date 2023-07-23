@@ -32,8 +32,8 @@ namespace WireHead.Commands
                         WireHead.AddEvents();
                         Accelerator.Preprocess();
                     }
-                    Console.WriteLine("Accelerator enabled");
-                    Console.WriteLine($"abc{WireHead.add(1, 2)}");
+                    WireHead.useTerracc = false;
+                    Console.WriteLine("Traditional accelerator enabled");
                     break;
                 case "disable":
                 case "d":
@@ -43,6 +43,20 @@ namespace WireHead.Commands
                         WireHead.RemoveEvents();
                     }
                     Console.WriteLine("Accelerator disabled");
+                    break;
+                case "compile":
+                case "c":
+                    TerraCC.transpile();
+                    TerraCC.compile();
+                    break;
+                case "terracc":
+                case "t":
+                    if (WireHead.vanillaWiring){
+                        WireHead.AddEvents();
+                        Accelerator.Preprocess();
+                    }
+                    WireHead.useTerracc = true;
+                    Console.WriteLine("terracc enabled");
                     break;
                 default:
                     throw new UsageException("cmd not recognized");
