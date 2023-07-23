@@ -59,6 +59,11 @@ internal static class Accelerator
     // Assumes that each pair of 2 groups only attaches to one pixel box
     // If you wanted to remove this assumtion it should be a list of (int, uints) instead
     public static Dictionary<int, uint>[] pixelBoxes;
+    // Conversion between pixel box ids and coordinates
+    public static List<uint> pbId2Coord;
+    public static Dictionary<uint, int> pbCoord2Id;
+    // Number of pixel boxes
+    public static int numPb = 0;
 
     // Number of total groups
     // All arrays indexed by groups are guaranteed to be of this size
@@ -213,8 +218,10 @@ internal static class Accelerator
                 int g = wireGroup[x, y, col];
                 if (g != -1)
                 {
-                    pixelBoxes[g][group] = xy2uint(x, y);
-                    pixelBoxes[group][g] = xy2uint(x, y);
+                    uint coord = xy2uint(x, y);
+                    pixelBoxes[g][group] = coord;
+                    pixelBoxes[group][g] = coord;
+                    pbId2Coord.Add(coord);
                 }
             }
 
@@ -612,6 +619,7 @@ internal static class Accelerator
 
         toggleableDict = new Dictionary<int, HashSet<Point16>>();
         triggerableDict = new Dictionary<int, HashSet<Point16>>();
+        pbId2Coord = new List<uint>();
 
         for (int x = 0; x < Main.maxTilesX; ++x)
         {
@@ -705,6 +713,10 @@ internal static class Accelerator
         triggerableDict.Clear();
         groupsTriggered = new int[numGroups];
 
+        // Inverts pbId2Coord to a dictionary with inverse mapping
+        pbCoord2Id = pbId2Coord.Select((s, i) => new { s, i }).ToDictionary(x => x.s, x => x.i);
+        numPb = pbId2Coord.Count();
+
     }
 
     /*
@@ -714,14 +726,20 @@ internal static class Accelerator
     {
 
         if(WireHead.useTerracc){
-            /* Console.WriteLine("Before: " + groupState[7]); */
             byte[] states = new byte[numGroups];
             TerraCC.read_states(states);
             for(int i = 0; i < numGroups; ++i){
                 groupOutOfSync[i] = (states[i]==1) != groupState[i];
                 groupState[i] = states[i] == 1;
             }
-            /* Console.WriteLine("After: " + groupState[7]); */
+
+            byte[] pb_states = new byte[numPb];
+            TerraCC.read_pb(pb_states);
+            for(int i = 0; i < numPb; ++i){
+                if(pb_states[i] == 0) continue;
+                Point16 p = uint2Point(pbId2Coord[i]);
+                TogglePixelBox(p.X, p.Y);
+            }
         }
 
         HashSet<uint> lampsVisited = new HashSet<uint>();

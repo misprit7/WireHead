@@ -14,6 +14,13 @@ internal static class TerraCC
 {
     // Do I use inconsistent method/variable naming conventions? Yes. 
     // I realy don't like caps in my names though so whatever
+    
+    /**
+     * (Incomplete) Assumptions used for this module:
+     * 1. Logic gates never smoke
+     * 2. The same group is never triggered twice in the same wire eval
+     * 3. Pixel boxes are arranged nicely so that >= 2 group triggers=toggle
+     */
 
     /**********************************************************************
      * Constants
@@ -40,10 +47,41 @@ internal static class TerraCC
      * Private Functions
      *********************************************************************/
 
+    /**
+     * String representing triggering a pixel box trigger
+     */
+    private static string pb_str(){
+        string ret = "";
+
+        ret += "switch(trig[i]){\n";
+
+        for(int g1 = 0; g1 < Accelerator.numGroups; ++g1){
+            var pb_dict = Accelerator.pixelBoxes[g1];
+            if(pb_dict.Count == 0) continue;
+
+            ret += $"case {g1}:\n";
+            ret += "for(int j = i+1; j < num_trig; ++j){\n";
+            ret += "switch(trig[j]){\n";
+
+            foreach(var entry in pb_dict){
+                int g2 = entry.Key;
+                ret += $"case {g2}:\n";
+                ret += $"tog(pb_s[{Accelerator.pbCoord2Id[entry.Value]}]);\n";
+                ret += "break;\n";
+            }
+
+            ret += "}\n}\nbreak;\n";
+        }
+        
+        ret += "}\n";
+
+        return ret;
+    }
+
     /*
      * String representing what to do for each possible group
      */
-    private static string switch_str(){
+    private static string faulty_str(){
         string ret = "";
         ret += "switch(trig[i]){\n";
         for(int i = 1; i < Accelerator.numGroups; ++i){
@@ -115,12 +153,19 @@ unreachable();
 #include <string.h>
 #include <stddef.h>
 
+#define tog(x) (x=!x)
+
 #define num_groups {Accelerator.numGroups+1}
+#define num_pb {Accelerator.numPb}
 #define colors 4
 #define max_triggers 1000
 #define max_depth 5000
 
+// Wire states
 static bool s[num_groups] = {{{string.Join(", ", Accelerator.groupState.Take(Accelerator.numGroups+1).Select(b => b ? "1" : "0"))}}};
+
+// Pixel boxes
+static bool pb_s[num_pb] = {{0}};
 
 void trigger(int input_groups[][colors], uint32_t num_inputs){{
     /* printf(""input: %d\n"", input_groups[0][0]); */
@@ -150,12 +195,14 @@ void trigger(int input_groups[][colors], uint32_t num_inputs){{
             }} else ++iter;
 
             for(int i = 0; i < num_trig; ++i){{
-                s[trig[i]] = !s[trig[i]];
+                tog(s[trig[i]]);
+                {pb_str()}
             }}
 
             for(int i = 0; i < num_trig; ++i){{
-                {switch_str()}
+                {faulty_str()}
             }}
+
 
             // Switch buffer assignment
             int *tmp = trig_next;
@@ -169,14 +216,14 @@ void trigger(int input_groups[][colors], uint32_t num_inputs){{
 }}
 
 void read_states(uint8_t *states){{
-    /* memcpy(states, s, num_groups * sizeof(s[0])); */
-    for(int i = 0; i < num_groups; ++i){{
-        states[i] = s[i];
-    }}
+    memcpy(states, s, num_groups * sizeof(s[0]));
     /* for(int i = 0; i < num_groups; ++i){{ */
-    /*     printf(""%d "", states[i]); */
+    /*     states[i] = s[i]; */
     /* }} */
-    /* printf(""\n""); */
+}}
+
+void read_pb(uint8_t *pb_states){{
+    memcpy(pb_states, pb_s, num_pb * sizeof(pb_s[0]));
 }}
 
 int main(void){{
@@ -264,6 +311,7 @@ int main(void){{
 
         trigger = Marshal.GetDelegateForFunctionPointer<TriggerDelegate>(trigger_ptr);
         read_states = Marshal.GetDelegateForFunctionPointer<ReadStatesDelegate>(read_states_ptr);
+        read_pb = Marshal.GetDelegateForFunctionPointer<ReadPbDelegate>(read_states_ptr);
 
         WireHead.useTerracc = true;
         Console.WriteLine("terracc enabled");
@@ -281,6 +329,7 @@ int main(void){{
 
     public static TriggerDelegate trigger;
     public static ReadStatesDelegate read_states;
+    public static ReadPbDelegate read_pb;
 
     /**********************************************************************
      * Imported functions
@@ -300,5 +349,6 @@ int main(void){{
 
     public delegate void TriggerDelegate(int[,] input_groups, uint num_inputs);
     public delegate void ReadStatesDelegate([Out] byte[] states);
+    public delegate void ReadPbDelegate([Out] byte[] pb_states);
 
 }
