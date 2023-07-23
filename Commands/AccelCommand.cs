@@ -17,45 +17,55 @@ namespace WireHead.Commands
                 // WARNING: Not thread safe if you call preprocess, enable or disable while wiring is occuring
                 case "preprocess":
                 case "p":
-                    Accelerator.Preprocess();
-                    Console.WriteLine("Preprocessing complete");
+                    WireHead.toExec.Enqueue(() => {
+                        Accelerator.Preprocess();
+                        Console.WriteLine("Preprocessing complete");
+                    });
                     break;
                 case "sync":
                 case "s":
                     // Print to console later once sync is actually finished
-                    WireHead.toExec.Enqueue(Accelerator.BringInSync);
+                    WireHead.toExec.Enqueue(() => {
+                        Accelerator.BringInSync();
+                        Console.WriteLine("Sync complete");
+                    });
                     break;
                 case "enable":
                 case "e":
-                    if (WireHead.vanillaWiring)
-                    {
-                        WireHead.AddEvents();
-                        Accelerator.Preprocess();
-                    }
-                    TerraCC.disable();
-                    Console.WriteLine("Traditional accelerator enabled");
+                    WireHead.toExec.Enqueue(() => {
+                        if (WireHead.vanillaWiring)
+                        {
+                            WireHead.AddEvents();
+                            Accelerator.Preprocess();
+                        }
+                        TerraCC.disable();
+                        Console.WriteLine("Traditional accelerator enabled");
+                    });
                     break;
                 case "disable":
                 case "d":
-                    if (!WireHead.vanillaWiring)
-                    {
-                        Accelerator.BringInSync();
-                        WireHead.RemoveEvents();
-                        TerraCC.disable();
-                    }
-                    Console.WriteLine("Accelerator disabled");
+                    WireHead.toExec.Enqueue(() => {
+                        if (!WireHead.vanillaWiring)
+                        {
+                            Accelerator.BringInSync();
+                            WireHead.RemoveEvents();
+                            TerraCC.disable();
+                        }
+                        Console.WriteLine("Accelerator disabled");
+                    });
                     break;
                 case "compile":
                 case "terracc":
                 case "c":
-                    if (WireHead.vanillaWiring){
-                        WireHead.AddEvents();
-                        Accelerator.Preprocess();
-                    }
-                    TerraCC.transpile();
-                    TerraCC.compile();
-                    TerraCC.enable();
-                    Console.WriteLine("terracc enabled");
+                    WireHead.toExec.Enqueue(() => {
+                        if (WireHead.vanillaWiring){
+                            WireHead.AddEvents();
+                            Accelerator.Preprocess();
+                        }
+                        TerraCC.transpile();
+                        TerraCC.compile();
+                        TerraCC.enable();
+                    });
                     break;
                 default:
                     throw new UsageException("cmd not recognized");

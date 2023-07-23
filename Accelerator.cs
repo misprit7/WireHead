@@ -469,6 +469,7 @@ internal static class Accelerator
 
             // TODO: Shift this to wait for all wires to trigger
             if(WireHead.useTerracc){
+                Console.WriteLine($"C# triggering {group}");
                 int[,] input_groups = new int[1,4];
                 input_groups[0,0] = group;
                 input_groups[0,1] = -1;

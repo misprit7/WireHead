@@ -77,10 +77,10 @@ internal static class TerraCC
                     if(bottom_empty) ret += "(void)\n";
                 }
                 if(xor.Count > 0){
-                    ret += "break;\n}\n";
+                    ret += "}\n";
                 }
-
             }
+            ret += "break;\n";
         }
         ret += @"
 default:
@@ -143,6 +143,7 @@ void trigger(int input_groups[][colors], uint32_t num_inputs){{
         
         int iter = 0;
         while(num_trig > 0){{
+            printf(""C triggering %d\n"", trig[0]);
             if(iter >= max_depth){{
                 printf(""Max depth exceeded!\n"");
                 break;
@@ -184,7 +185,7 @@ int main(void){{
     uint8_t states[num_groups] = {{0}};
     read_states(states);
     for(int i = 0; i < num_groups; ++i){{
-        /* printf(""%d "", states[i]); */
+        printf(""%d "", states[i]);
     }}
     printf(""\n"");
 }}
@@ -265,6 +266,7 @@ int main(void){{
         read_states = Marshal.GetDelegateForFunctionPointer<ReadStatesDelegate>(read_states_ptr);
 
         WireHead.useTerracc = true;
+        Console.WriteLine("terracc enabled");
     }
 
     public static void disable(){
@@ -272,6 +274,7 @@ int main(void){{
             WireHead.useTerracc = false;
             dlclose(libHandle);
             libHandle = IntPtr.Zero;
+            Console.WriteLine("terracc disabled");
         }
         
     }
