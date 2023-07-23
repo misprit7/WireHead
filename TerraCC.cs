@@ -19,53 +19,30 @@ internal static class TerraCC
      * Constants
      *********************************************************************/
 
-    private const int max_depth = 1000;
+    // File paths for temporary working directory to compile stuff in
     private const string work_dir = "/tmp/terracc/";
     private const string c_file_name = "wld.c";
     private const string so_file_name = "wld.so";
+
+    // libdl parameters
+    private const int RTLD_LAZY = 1;
+    private const string DlLibrary = "/usr/lib/libdl.so.2";
+
 
     /**********************************************************************
      * Variables
      *********************************************************************/
 
-    private static List<int> to_fn = new List<int>();
+    // Handle for libdl functions
+    private static IntPtr libHandle;
 
     /**********************************************************************
      * Private Functions
      *********************************************************************/
 
-    private static string group_fn_name_str(int g){
-        return $"trigger{g}";
-    }
-
-    private static string group_fn_str(int g){
-        to_fn.Add(g);
-        return group_fn_name_str(g);
-    }
-
-    private static string group_exec_str(int[] groups){
-        if(groups.Length == 1){
-            return $"{group_fn_str(groups[0])}();\n";
-        }
-
-        string ret = "";
-
-        foreach(int g in groups){
-            if(Accelerator.toggleable[g].Length > 0)
-                ret += $"tog(s[{g}]);\n";
-        }
-        ret += "\n";
-
-        // TODO non-standard triggerables
-        /* List<uint> to_trigger = new List<uint>(); */
-        List<uint> std_lamps = new List<uint>();
-        foreach(int g in groups){
-            std_lamps.AddRange(Accelerator.groupStandardLamps[g]);
-        }
-
-        return ret;
-    }
-
+    /*
+     * String representing what to do for each possible group
+     */
     private static string switch_str(){
         string ret = "";
         ret += "switch(trig[i]){\n";
@@ -76,7 +53,7 @@ internal static class TerraCC
                 List<string> xor = new List<string>();
                 Point16 p = Accelerator.uint2Point(std_lamp);
                 for(int c = 0; c < Accelerator.colors; ++c){
-                    int g = Accelerator.wireGroup[p.X, p.Y, c];
+                    int g = Accelerator.wireGroup[p.X, p.Y+1, c];
                     if(g > 0) xor.Add($"s[{g}]");
                 }
                 bool on = Main.tile[p.X, p.Y+1].TileFrameX == 18;
@@ -91,7 +68,7 @@ internal static class TerraCC
                 if(xor.Count > 0 || on){
                     bool bottom_empty = true;
                     for(int c = 0; c < Accelerator.colors; ++c){
-                        int g = Accelerator.wireGroup[p.X, p.Y, c];
+                        int g = Accelerator.wireGroup[p.X, p.Y+2, c];
                         if(g > 0){
                             bottom_empty = false;
                             ret += $"trig_next[num_trig_next++] = {g};\n";
@@ -122,6 +99,12 @@ unreachable();
      * Public Functions
      *********************************************************************/
 
+    /*
+     * Transpile a Terraria wiring world into a c program with the same control
+     * graph
+     * I wish there was an equivalent of #include in C#, but since there isn't
+     * I'm sticking to string blocks
+     */
     public static void transpile()
     {
 
@@ -135,11 +118,12 @@ unreachable();
 #define num_groups {Accelerator.numGroups+1}
 #define colors 4
 #define max_triggers 1000
+#define max_depth 5000
 
 static bool s[num_groups] = {{{string.Join(", ", Accelerator.groupState.Take(Accelerator.numGroups+1).Select(b => b ? "1" : "0"))}}};
 
 void trigger(int input_groups[][colors], uint32_t num_inputs){{
-    printf(""input: %d\n"", input_groups[0][0]);
+    /* printf(""input: %d\n"", input_groups[0][0]); */
     for(int j = 0; j < num_inputs; ++j){{
 
         int num_trig = 0;
@@ -157,7 +141,13 @@ void trigger(int input_groups[][colors], uint32_t num_inputs){{
             trig[num_trig] = input_groups[j][num_trig];
         }}
         
-        while(num_trig > 0){{
+        int iter = 0;
+        while(num_trig > 0 && ){{
+            if(iter >= max_depth){{
+                printf(""Max depth exceeded!\n"");
+                break;
+            }} else ++iter;
+
             for(int i = 0; i < num_trig; ++i){{
                 s[trig[i]] = !s[trig[i]];
             }}
@@ -177,15 +167,21 @@ void trigger(int input_groups[][colors], uint32_t num_inputs){{
     }}
 }}
 
-void read_states(bool *states){{
-    printf(""Reading from c!\n"");
-    memcpy(states, s, num_groups * sizeof(s[0]));
+void read_states(uint8_t *states){{
+    /* memcpy(states, s, num_groups * sizeof(s[0])); */
+    for(int i = 0; i < num_groups; ++i){{
+        states[i] = s[i];
+    }}
+    /* for(int i = 0; i < num_groups; ++i){{ */
+    /*     printf(""%d "", states[i]); */
+    /* }} */
+    /* printf(""\n""); */
 }}
 
 int main(void){{
     int triggers[1][4] = {{{{7, -1, -1, -1}}}};
     trigger(triggers, 1);
-    bool states[num_groups] = {{0}};
+    uint8_t states[num_groups] = {{0}};
     read_states(states);
     for(int i = 0; i < num_groups; ++i){{
         printf(""%d "", states[i]);
@@ -229,16 +225,24 @@ int main(void){{
 
         // Read the standard output of the command
         string output = process.StandardOutput.ReadToEnd();
+        string error = process.StandardError.ReadToEnd();
 
         // Wait for the process to finish
         process.WaitForExit();
+        if (process.ExitCode != 0)
+            {
+                // Handle the error here or throw an exception if needed
+                Console.WriteLine($"Error occurred. Exit code: {process.ExitCode}");
+                Console.WriteLine($"Error message: {error}");
+                throw new InvalidOperationException("Compiling Failed!");
+            }
     }
 
-    private static IntPtr libHandle;
-    private const int RTLD_LAZY = 1;
-    private const string DlLibrary = "/usr/lib/libdl.so.2";
-
     public static void enable(){
+        if(libHandle != IntPtr.Zero){
+            disable();
+        }
+
         libHandle = dlopen(work_dir + so_file_name, RTLD_LAZY);
         if (libHandle == IntPtr.Zero)
         {
@@ -263,9 +267,11 @@ int main(void){{
         if(WireHead.useTerracc){
             WireHead.useTerracc = false;
             dlclose(libHandle);
+            libHandle = IntPtr.Zero;
         }
         
     }
+
     public static TriggerDelegate trigger;
     public static ReadStatesDelegate read_states;
 
@@ -286,6 +292,6 @@ int main(void){{
     private static extern int dlclose(IntPtr handle);
 
     public delegate void TriggerDelegate(int[,] input_groups, uint num_inputs);
-    public delegate void ReadStatesDelegate([Out] bool[] states);
+    public delegate void ReadStatesDelegate([Out] byte[] states);
 
 }
