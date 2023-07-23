@@ -10,7 +10,4 @@
   <ItemGroup>
     <PackageReference Include="tModLoader.CodeAssist" Version="0.1.*" />
   </ItemGroup>
-  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-    <Exec Command="cargo build --manifest-path=./terracc/Cargo.toml --release  &amp;&amp; sudo cp terracc/target/release/libterracc.so /usr/local/lib" />
-  </Target>
 </Project>

@@ -469,8 +469,11 @@ internal static class Accelerator
 
             // TODO: Shift this to wait for all wires to trigger
             if(WireHead.useTerracc){
-                int[,] input_groups = new int[1,1];
+                int[,] input_groups = new int[1,4];
                 input_groups[0,0] = group;
+                input_groups[0,1] = -1;
+                input_groups[0,2] = -1;
+                input_groups[0,3] = -1;
                 TerraCC.trigger(input_groups, 1);
                 continue;
             }
@@ -710,7 +713,9 @@ internal static class Accelerator
     {
 
         if(WireHead.useTerracc){
-            TerraCC.read_states(out groupState);
+            // Console.WriteLine("Before: " + string.Join(", ", groupState));
+            TerraCC.read_states(groupState);
+            // Console.WriteLine("After: " + string.Join(", ", groupState));
         }
 
         HashSet<uint> lampsVisited = new HashSet<uint>();

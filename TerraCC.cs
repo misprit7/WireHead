@@ -132,11 +132,11 @@ unreachable();
 #include <string.h>
 #include <stddef.h>
 
-#define num_groups {Accelerator.numGroups}
+#define num_groups {Accelerator.numGroups+1}
 #define colors 4
 #define max_triggers 1000
 
-static bool s[num_groups] = {{{string.Join(", ", Accelerator.groupState.Take(Accelerator.numGroups).Select(b => b ? "1" : "0"))}}};
+static bool s[num_groups] = {{{string.Join(", ", Accelerator.groupState.Take(Accelerator.numGroups+1).Select(b => b ? "1" : "0"))}}};
 
 void trigger(int input_groups[][colors], uint32_t num_inputs){{
     printf(""input: %d\n"", input_groups[0][0]);
@@ -162,8 +162,6 @@ void trigger(int input_groups[][colors], uint32_t num_inputs){{
                 s[trig[i]] = !s[trig[i]];
             }}
 
-            num_trig_next = 0;
-
             for(int i = 0; i < num_trig; ++i){{
                 {switch_str()}
             }}
@@ -172,6 +170,9 @@ void trigger(int input_groups[][colors], uint32_t num_inputs){{
             int *tmp = trig_next;
             trig_next = trig;
             trig = tmp;
+
+            num_trig = num_trig_next;
+            num_trig_next = 0;
         }}
     }}
 }}
@@ -181,15 +182,16 @@ void read_states(bool *states){{
     memcpy(states, s, num_groups * sizeof(s[0]));
 }}
 
-/*int main(void){{
-    //int triggers[][4] = {{{{-1, -1, -1, 1}}}};
+int main(void){{
+    int triggers[1][4] = {{{{7, -1, -1, -1}}}};
+    trigger(triggers, 1);
     bool states[num_groups] = {{0}};
     read_states(states);
     for(int i = 0; i < num_groups; ++i){{
         printf(""%d "", states[i]);
     }}
-    printf(""\\n"");
-}}*/
+    printf(""\n"");
+}}
 
 ";
         try
@@ -230,8 +232,6 @@ void read_states(bool *states){{
 
         // Wait for the process to finish
         process.WaitForExit();
-
-        enable();
     }
 
     private static IntPtr libHandle;
@@ -253,14 +253,17 @@ void read_states(bool *states){{
         IntPtr trigger_ptr = dlsym(libHandle, "trigger");
         IntPtr read_states_ptr = dlsym(libHandle, "read_states");
 
-        TriggerDelegate trigger = Marshal.GetDelegateForFunctionPointer<TriggerDelegate>(trigger_ptr);
-        ReadStatesDelegate read_states = Marshal.GetDelegateForFunctionPointer<ReadStatesDelegate>(read_states_ptr);
+        trigger = Marshal.GetDelegateForFunctionPointer<TriggerDelegate>(trigger_ptr);
+        read_states = Marshal.GetDelegateForFunctionPointer<ReadStatesDelegate>(read_states_ptr);
 
-        /* Console.WriteLine("Sucessful call"); */
+        WireHead.useTerracc = true;
     }
 
     public static void disable(){
-        dlclose(libHandle);
+        if(WireHead.useTerracc){
+            WireHead.useTerracc = false;
+            dlclose(libHandle);
+        }
         
     }
     public static TriggerDelegate trigger;
