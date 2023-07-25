@@ -75,6 +75,12 @@ internal static class Accelerator
     // Groups that are out of sync with the world, value is original state of group
     public static bool[] groupOutOfSync;
 
+    // Terracc wire activation summary
+    // Guaranteed to be of size [maxTriggers, colors]
+    public static int[,] toHit;
+    // Number of new groups in toHit
+    public static int numToHit = 0;
+
     
     /**********************************************************************
      * Monitor Variables
@@ -96,32 +102,12 @@ internal static class Accelerator
     /**********************************************************************
      * Constants
      *********************************************************************/
-    // const data
+
+    public static readonly int maxTriggers = 10000; 
+
     // Used to have enum, removed for efficiency
     // In array indexing, red=0, blue=1, green=2, yellow=3
     public static readonly int colors = 4;
-    //[Flags]
-    //public enum Color
-    //{
-    //    None = 0,
-    //    Yellow = 1,
-    //    Green = 2,
-    //    Blue = 4,
-    //    Red = 8,
-    //}
-    //// List of actual (non-None) colors to loop over
-    //public static readonly HashSet<Color> Colors = new HashSet<Color>
-    //{
-    //    Color.Yellow, Color.Green, Color.Blue, Color.Red,
-    //};
-    //// Corresponds to internal Terraria wiring representations
-    //public static readonly Dictionary<int, Color> intToColor = new Dictionary<int, Color>
-    //{
-    //    { 1, Color.Red },
-    //    { 2, Color.Blue },
-    //    { 3, Color.Green },
-    //    { 4, Color.Yellow },
-    //};
 
     public static readonly HashSet<int> triggeredIDs = new HashSet<int>
     {
@@ -466,6 +452,8 @@ internal static class Accelerator
      */
     public static void HitWire(DoubleStack<Point16> next, int wireType)
     {
+
+        if(WireHead.useTerracc) return;
         int c = wireType-1;
         HashSet<int> alreadyHit = new HashSet<int>();
         WiringWrapper._currentWireColor = wireType;
@@ -473,18 +461,6 @@ internal static class Accelerator
         {
             var p = next.PopFront();
             int group = wireGroup[p.X, p.Y, c];
-
-            // TODO: Shift this to wait for all wires to trigger
-            if(WireHead.useTerracc){
-                Console.WriteLine($"C# triggering {group}");
-                int[,] input_groups = new int[1,4];
-                input_groups[0,0] = group;
-                input_groups[0,1] = -1;
-                input_groups[0,2] = -1;
-                input_groups[0,3] = -1;
-                TerraCC.trigger(input_groups, 1);
-                continue;
-            }
 
             if (alreadyHit.Contains(group)) continue;
             else alreadyHit.Add(group);
@@ -621,6 +597,8 @@ internal static class Accelerator
         triggerableDict = new Dictionary<int, HashSet<Point16>>();
         pbId2Coord = new List<uint>();
 
+        toHit = new int[maxTriggers, colors];
+
         for (int x = 0; x < Main.maxTilesX; ++x)
         {
             for (int y = 0; y < Main.maxTilesY; ++y)
@@ -720,6 +698,22 @@ internal static class Accelerator
     }
 
     /*
+     * Brings just pixel boxes into sync
+     */
+    public static void SyncPb()
+    {
+        if(WireHead.useTerracc){
+            byte[] pb_states = new byte[numPb];
+            TerraCC.read_pb(pb_states);
+            for(int i = 0; i < numPb; ++i){
+                if(pb_states[i] == 0) continue;
+                Point16 p = uint2Point(pbId2Coord[i]);
+                TogglePixelBox(p.X, p.Y);
+            }
+        }
+    }
+
+    /*
      * Brings back into sync after running efficiently
      */
     public static void BringInSync()
@@ -732,14 +726,7 @@ internal static class Accelerator
                 groupOutOfSync[i] = (states[i]==1) != groupState[i];
                 groupState[i] = states[i] == 1;
             }
-
-            byte[] pb_states = new byte[numPb];
-            TerraCC.read_pb(pb_states);
-            for(int i = 0; i < numPb; ++i){
-                if(pb_states[i] == 0) continue;
-                Point16 p = uint2Point(pbId2Coord[i]);
-                TogglePixelBox(p.X, p.Y);
-            }
+            SyncPb();
         }
 
         HashSet<uint> lampsVisited = new HashSet<uint>();

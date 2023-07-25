@@ -429,10 +429,27 @@ namespace Terraria
             }
         }
 
-        public static void TripWire(int left, int top, int width, int height)
+    public static void TripWire(int left, int top, int width, int height)
         {
             if (Main.netMode == 1)
                 return;
+
+            // Modified to accomodate terracc
+            if(WireHead.WireHead.useTerracc){
+                for(int c = 0; c < Accelerator.colors; ++c){
+                    Accelerator.toHit[Accelerator.numToHit,c] = -1;
+                    for(int x = left; x < left+width; ++x){
+                        for(int y = top; y < top+height; ++y){
+                            int g = Accelerator.wireGroup[x, y, c];
+                            if(g == -1) continue;
+                            Accelerator.toHit[Accelerator.numToHit, c] = 
+                                g;
+                            Console.WriteLine($"Trigger c:{c}, group: {g}");
+                        }
+                    }
+                }
+                ++Accelerator.numToHit;
+            }
 
             running = true;
             if (_wireList.Count != 0)

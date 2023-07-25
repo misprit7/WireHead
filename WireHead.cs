@@ -263,8 +263,18 @@ namespace WireHead
         }
 
         // This used to be PostUpdateWorld, have no idea why it randomly broke
-        public override void PostUpdatePlayers()
+        public override void PostUpdateEverything()
         {
+            
+            if(WireHead.useTerracc){
+                if(Accelerator.numToHit > 0){
+                    Console.WriteLine($"Triggering r:{Accelerator.toHit[0,0]}, b: {Accelerator.toHit[0,1]}");
+                }
+                TerraCC.trigger(Accelerator.toHit, Accelerator.numToHit);
+                Accelerator.numToHit = 0;
+                Accelerator.SyncPb();
+            }
+
             foreach (var action in WireHead.toExec)
             {
                 action();

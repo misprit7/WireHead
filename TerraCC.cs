@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 using System.Linq;
 using System.Collections.Generic;
 using System.IO;
@@ -66,6 +67,7 @@ internal static class TerraCC
             foreach(var entry in pb_dict){
                 int g2 = entry.Key;
                 ret += $"case {g2}:\n";
+                /* ret += "printf(\"Toggling pixel box, state %d\\n\", pb_s[0]);\n"; */
                 ret += $"tog(pb_s[{Accelerator.pbCoord2Id[entry.Value]}]);\n";
                 ret += "break;\n";
             }
@@ -82,11 +84,11 @@ internal static class TerraCC
      * String representing what to do for each possible group
      */
     private static string faulty_str(){
-        string ret = "";
-        ret += "switch(trig[i]){\n";
+        StringBuilder ret = new StringBuilder();
+        ret.Append("switch(trig[i]){\n");
         for(int i = 1; i < Accelerator.numGroups; ++i){
             if(Accelerator.groupStandardLamps[i].Count == 0) continue;
-            ret += $"case {i}:\n";
+            ret.Append($"case {i}:\n");
             foreach(uint std_lamp in Accelerator.groupStandardLamps[i]){
                 List<string> xor = new List<string>();
                 Point16 p = Accelerator.uint2Point(std_lamp);
@@ -96,40 +98,40 @@ internal static class TerraCC
                 }
                 bool on = Main.tile[p.X, p.Y+1].TileFrameX == 18;
                 if(xor.Count > 0){
-                    ret += "if(";
+                    ret.Append("if(");
                     if(!on)
-                        ret += string.Join(" ^ ", xor);
+                        ret.Append(string.Join(" ^ ", xor));
                     else
-                        ret += "!(" + string.Join(" ^ ", xor) + ")";
-                    ret += "){\n";
+                        ret.Append("!(" + string.Join(" ^ ", xor) + ")");
+                    ret.Append("){\n");
                 }
                 if(xor.Count > 0 || on){
-                    bool bottom_empty = true;
                     for(int c = 0; c < Accelerator.colors; ++c){
                         int g = Accelerator.wireGroup[p.X, p.Y+2, c];
                         if(g > 0){
-                            bottom_empty = false;
-                            ret += $"trig_next[num_trig_next++] = {g};\n";
+                            ret.Append($"trig_next[num_trig_next++] = {g};\n");
                         }
                     }
-                    if(bottom_empty) ret += "(void)\n";
                 }
                 if(xor.Count > 0){
-                    ret += "}\n";
+                    ret.Append("}\n");
                 }
             }
-            ret += "break;\n";
+            ret.Append("break;\n");
         }
-        ret += @"
+        ret.Append(@"
+case -1:
+case 0:
+break;
 default:
 #ifdef unreachable
 unreachable();
 #else
 {};
 #endif
-";
-        ret += "}\n";
-        return ret;
+");
+        ret.Append("}\n");
+        return ret.ToString();
     }
 
 
@@ -158,7 +160,7 @@ unreachable();
 #define num_groups {Accelerator.numGroups+1}
 #define num_pb {Accelerator.numPb}
 #define colors 4
-#define max_triggers 1000
+#define max_triggers {Accelerator.maxTriggers}
 #define max_depth 5000
 
 // Wire states
@@ -167,7 +169,7 @@ static bool s[num_groups] = {{{string.Join(", ", Accelerator.groupState.Take(Acc
 // Pixel boxes
 static bool pb_s[num_pb] = {{0}};
 
-void trigger(int input_groups[][colors], uint32_t num_inputs){{
+void trigger(int input_groups[][colors], int32_t num_inputs){{
     /* printf(""input: %d\n"", input_groups[0][0]); */
     for(int j = 0; j < num_inputs; ++j){{
 
@@ -181,14 +183,14 @@ void trigger(int input_groups[][colors], uint32_t num_inputs){{
         int *trig_next = to_trigger2;
 
         // Load initial trigger groups
-        for(num_trig = 0; num_trig < colors; ++num_trig){{
-            if(input_groups[j][num_trig] == -1) break;
-            trig[num_trig] = input_groups[j][num_trig];
+        for(int c = 0; c < colors; ++c){{
+            if(input_groups[j][c] <= 0) continue;
+            trig[num_trig] = input_groups[j][c];
+            ++num_trig;
         }}
         
         int iter = 0;
         while(num_trig > 0){{
-            printf(""C triggering %d\n"", trig[0]);
             if(iter >= max_depth){{
                 printf(""Max depth exceeded!\n"");
                 break;
@@ -203,7 +205,6 @@ void trigger(int input_groups[][colors], uint32_t num_inputs){{
                 {faulty_str()}
             }}
 
-
             // Switch buffer assignment
             int *tmp = trig_next;
             trig_next = trig;
@@ -217,22 +218,28 @@ void trigger(int input_groups[][colors], uint32_t num_inputs){{
 
 void read_states(uint8_t *states){{
     memcpy(states, s, num_groups * sizeof(s[0]));
-    /* for(int i = 0; i < num_groups; ++i){{ */
-    /*     states[i] = s[i]; */
-    /* }} */
 }}
 
 void read_pb(uint8_t *pb_states){{
     memcpy(pb_states, pb_s, num_pb * sizeof(pb_s[0]));
+    memset(pb_s, 0, num_pb * sizeof(pb_s[0]));
 }}
 
 int main(void){{
-    int triggers[1][4] = {{{{7, -1, -1, -1}}}};
+    int triggers[1][4] = {{{{15, 16, -1, -1}}}};
     trigger(triggers, 1);
+
     uint8_t states[num_groups] = {{0}};
     read_states(states);
+    uint8_t pb_states[num_groups] = {{0}};
+    read_pb(pb_states);
+
     for(int i = 0; i < num_groups; ++i){{
         printf(""%d "", states[i]);
+    }}
+    printf(""\n"");
+    for(int i = 0; i < num_pb; ++i){{
+        printf(""%d "", pb_states[i]);
     }}
     printf(""\n"");
 }}
@@ -308,10 +315,11 @@ int main(void){{
 
         IntPtr trigger_ptr = dlsym(libHandle, "trigger");
         IntPtr read_states_ptr = dlsym(libHandle, "read_states");
+        IntPtr read_pb_ptr = dlsym(libHandle, "read_pb");
 
         trigger = Marshal.GetDelegateForFunctionPointer<TriggerDelegate>(trigger_ptr);
         read_states = Marshal.GetDelegateForFunctionPointer<ReadStatesDelegate>(read_states_ptr);
-        read_pb = Marshal.GetDelegateForFunctionPointer<ReadPbDelegate>(read_states_ptr);
+        read_pb = Marshal.GetDelegateForFunctionPointer<ReadPbDelegate>(read_pb_ptr);
 
         WireHead.useTerracc = true;
         Console.WriteLine("terracc enabled");
@@ -347,7 +355,7 @@ int main(void){{
     [DllImport(DlLibrary)]
     private static extern int dlclose(IntPtr handle);
 
-    public delegate void TriggerDelegate(int[,] input_groups, uint num_inputs);
+    public delegate void TriggerDelegate(int[,] input_groups, int num_inputs);
     public delegate void ReadStatesDelegate([Out] byte[] states);
     public delegate void ReadPbDelegate([Out] byte[] pb_states);
 

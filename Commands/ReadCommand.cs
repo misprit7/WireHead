@@ -1,5 +1,4 @@
-﻿
-using System;
+﻿using System;
 using Terraria;
 using Terraria.ModLoader;
 
