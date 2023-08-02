@@ -122,3 +122,34 @@ Of course this approach does have its limitations. The group state only works on
 To be continued
 <!-- Even once you implement the changes described above to vanilla code, -->
 
+## Prerequisites and Compilation Instructions 
+
+ - This repo requires the Microsoft XNA Framework Redistributable 4.0 - [Download and install that from here](https://www.microsoft.com/en-US/download/details.aspx?id=20914) - if you haven't already
+
+ - This repo requires 1.4.3.6 version of tModLoader - and therefore v1.4.3.6 of Terraria
+
+- Terraria v1.4.3.6 through Stream:
+   - This requires a legitimate copy of Terraria on Steam
+   - If you don't have **version v1.4.3.6** of Terraria:
+   - Run "steam://open/console" (winkey+r + steam://open/console on windows) - this opens the steam console.
+   - Run the command: `download_depot 105600 105601 8029804717360255491`
+   - Wait until the steam console says "Depot download complete" - (Note: there's no progress bar, just wait)
+   - This downloads Terraria v1.4.3.6 into C:\Program Files (x86)\Steam\steamapps\content\app_105600\depot_105601 (On Windows)
+ - tModLoader 1.4.3.6:
+   - Clone the [tModLoader 1.4.3-legacy](https://github.com/tModLoader/tModLoader/tree/1.4.3-legacy) branch.
+   - After cloning tModLoader, create a new folder inside it, "WireHead", and clone this WireHead repo into that.
+     - Alternatively, if you don't want the WireHead project inside the tModLoader:
+     - You can clone WireHead in a side-by-side folder of tModLoader:
+     - Open the WireHead.csproj project file in a text editor
+     - Change the line `<Import Project="..\tModLoader.targets" />` to `<Import Project="..\TML\tModLoader.targets" />`
+     - (Substitube `TML` for the foldername you've given tModLoader)
+- Setup:
+  - Now run setup.bat of tModLoader. This will open a window saying "tModLoader Dev Setup"
+  - Go to options - Select Terraria
+  - Select C:\Program Files (x86)\Steam\steamapps\content\app_105600\depot_105601\Terraria.exe (Path will differ on non-windows)
+  - Press the Setup button of the main tModLoader window
+  - Wait for everything to finish decompiling
+- Build:
+  - Open a terminal in the WireHead folder (Same folder where WireHead.sln is located)
+  - Run `dotnet build`
+    - You might have to run this 2 or 3 times due to the build order of tModLoader
