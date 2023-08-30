@@ -39,7 +39,6 @@ internal static class Accelerator
     // Lookup array of "Standard" faulty lamp arrangments
     // Used to be hash set but hash set lookup was performance bottleneck so flat array should be faster
     public static bool[,] standardLamps;
-    // TO IMPLEMENT
     // Mapping from group -> list of standard lamps this is top of
     public static List<uint>[] groupStandardLamps;
 
@@ -107,7 +106,7 @@ internal static class Accelerator
 
     // Used to have enum, removed for efficiency
     // In array indexing, red=0, blue=1, green=2, yellow=3
-    public static readonly int colors = 4;
+    public const int colors = 4;
 
     public static readonly HashSet<int> triggeredIDs = new HashSet<int>
     {
@@ -452,7 +451,6 @@ internal static class Accelerator
      */
     public static void HitWire(DoubleStack<Point16> next, int wireType)
     {
-
         if(WireHead.useTerracc) return;
         int c = wireType-1;
         HashSet<int> alreadyHit = new HashSet<int>();
@@ -461,6 +459,8 @@ internal static class Accelerator
         {
             var p = next.PopFront();
             int group = wireGroup[p.X, p.Y, c];
+
+            /* if(WireHead.useTerracc && triggerable[group].Length == groupStandardLamps[group].Count) continue; */
 
             if (alreadyHit.Contains(group)) continue;
             else alreadyHit.Add(group);
@@ -660,7 +660,7 @@ internal static class Accelerator
                 }
             }
         }
-        // Running resizing was an overestimage, switch back
+        // Running resizing was an overestimate, switch back
         numGroups = group;
 
         // Convert toggleableDict/triggerableDict to arrays
@@ -723,8 +723,33 @@ internal static class Accelerator
             byte[] states = new byte[numGroups];
             TerraCC.read_states(states);
             for(int i = 0; i < numGroups; ++i){
+                if((states[i]==1) != groupState[i]){
+                    Console.WriteLine($"State {i} new state: {states[i]}");
+                }
                 groupOutOfSync[i] = (states[i]==1) != groupState[i];
                 groupState[i] = states[i] == 1;
+
+                // Do our best to handle triggered blocks, this will only work
+                // if they've triggered at most once since the last sync though
+                if(groupOutOfSync[i]){
+                    // This might not be robust, I think if you make purposefully
+                    // confusing chained teleporters this breaks.
+                    //
+                    // Don't do that.
+
+                    WiringWrapper._teleport[0].X = -1f;
+                    WiringWrapper._teleport[0].Y = -1f;
+                    WiringWrapper._teleport[1].X = -1f;
+                    WiringWrapper._teleport[1].Y = -1f;
+                    foreach(uint tile in triggerable[i]){
+                        Point16 p = uint2Point(tile);
+                        if(standardLamps[p.X,p.Y]) break;
+                        HitWireSingle(tile);
+                        /* Console.WriteLine($"Triggering from sync group: {i}, x:{p.X}, y:{p.Y}"); */
+                    }
+                    if (WiringWrapper._teleport[0].X >= 0f && WiringWrapper._teleport[1].X >= 0f)
+                        WiringWrapper.Teleport();
+                }
             }
             SyncPb();
         }

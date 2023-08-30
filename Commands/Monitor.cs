@@ -1,5 +1,6 @@
 using System;
 using Terraria.ModLoader;
+using Terraria;
 
 namespace WireHead.Commands;
 
@@ -25,7 +26,7 @@ public class Monitor
                         {
                             Console.WriteLine($"Clock count complete: {Accelerator.clockCount}");
                             ++i;
-                            break;
+                            return;
                         }
                         if (args.Length <= i+3)
                             throw new UsageException("Too few arguments");
@@ -46,6 +47,8 @@ public class Monitor
                         }
 
                         Accelerator.clockGroup = group;
+                        if(WireHead.useTerracc)
+                            WireHead.toExec.Enqueue(()=>TerraCC.set_clock(group));
                         if (max > 0)
                             Accelerator.clockMax = max;
                         i += 3;

@@ -268,11 +268,17 @@ namespace WireHead
             
             if(WireHead.useTerracc){
                 if(Accelerator.numToHit > 0){
-                    Console.WriteLine($"Triggering r:{Accelerator.toHit[0,0]}, b: {Accelerator.toHit[0,1]}");
+                    /* Console.WriteLine($"Triggering r:{Accelerator.toHit[0,0]}, b: {Accelerator.toHit[0,1]}, g: {Accelerator.toHit[0,1]}, y: {Accelerator.toHit[0,3]}"); */
                 }
                 TerraCC.trigger(Accelerator.toHit, Accelerator.numToHit);
                 Accelerator.numToHit = 0;
                 Accelerator.SyncPb();
+                Accelerator.clockCount = TerraCC.read_clock();
+                if(Accelerator.clockCount > Accelerator.clockMax){
+                    Console.WriteLine("Clock finished");
+                    Accelerator.clockCount = 0;
+                    TerraCC.set_clock(-1);
+                }
             }
 
             foreach (var action in WireHead.toExec)

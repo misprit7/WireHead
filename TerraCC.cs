@@ -49,6 +49,28 @@ internal static class TerraCC
      *********************************************************************/
 
     /**
+     * Convenience method to write to file
+     */
+    private static void write_file(string file_name, string file){
+        try
+        {
+            if (!Directory.Exists(work_dir))
+            {
+                Directory.CreateDirectory(work_dir);
+                Console.WriteLine("Directory created successfully.");
+            }
+            // Write the string content to the file
+            File.WriteAllText(work_dir + file_name, file);
+
+            Console.WriteLine("File written successfully.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"An error occurred: {ex.Message}");
+        }
+    }
+
+    /**
      * String representing triggering a pixel box trigger
      */
     private static string pb_str(){
@@ -85,18 +107,40 @@ internal static class TerraCC
      */
     private static string faulty_str(){
         StringBuilder ret = new StringBuilder();
+        // Extra standard lamps not in the switch statement
+        List<int[,]>[] extra_std = new List<int[,]>[Accelerator.numGroups];
+
         ret.Append("switch(trig[i]){\n");
-        for(int i = 1; i < Accelerator.numGroups; ++i){
+        for(int i = 0; i < Accelerator.numGroups; ++i){
+            extra_std[i] = new List<int[,]>();
             if(Accelerator.groupStandardLamps[i].Count == 0) continue;
             ret.Append($"case {i}:\n");
             foreach(uint std_lamp in Accelerator.groupStandardLamps[i]){
+                // Update extra List
+                // First is current wire state, second is middle lamp groups, last
+                // is output groups
+                int[,] lamp_data = new int[3,Accelerator.colors]{
+                        {
+                            1, // Entry populated
+                            0, // Middle gate on
+                            0, // Unused
+                            0, // Unused
+                        },
+                        {-1, -1, -1, -1},
+                        {-1, -1, -1, -1}
+                };
+
                 List<string> xor = new List<string>();
                 Point16 p = Accelerator.uint2Point(std_lamp);
-                for(int c = 0; c < Accelerator.colors; ++c){
+                for(int c = 0, j = 0; c < Accelerator.colors; ++c){
                     int g = Accelerator.wireGroup[p.X, p.Y+1, c];
-                    if(g > 0) xor.Add($"s[{g}]");
+                    if(g > 0){
+                        xor.Add($"s[{g}]");
+                        lamp_data[1, j++] = g;
+                    }
                 }
                 bool on = Main.tile[p.X, p.Y+1].TileFrameX == 18;
+                if(on) lamp_data[0, 1] = 1;
                 if(xor.Count > 0){
                     ret.Append("if(");
                     if(!on)
@@ -106,13 +150,15 @@ internal static class TerraCC
                     ret.Append("){\n");
                 }
                 if(xor.Count > 0 || on){
-                    for(int c = 0; c < Accelerator.colors; ++c){
+                    for(int c = 0, j = 0; c < Accelerator.colors; ++c){
                         int g = Accelerator.wireGroup[p.X, p.Y+2, c];
                         if(g > 0){
                             ret.Append($"trig_next[num_trig_next++] = {g};\n");
+                            lamp_data[2, j++] = g;
                         }
                     }
                 }
+                extra_std[i].Add(lamp_data);
                 if(xor.Count > 0){
                     ret.Append("}\n");
                 }
@@ -131,7 +177,54 @@ unreachable();
 #endif
 ");
         ret.Append("}\n");
-        return ret.ToString();
+
+        // Extra standard lamps handling
+        StringBuilder std_lamps = new StringBuilder();
+        int max_connections = extra_std.Max(list => list.Count());
+        std_lamps.Append($"#define max_connections {max_connections}\n");
+        std_lamps.Append(
+            $"static int std_lamps[{Accelerator.numGroups}][{max_connections}][3][{Accelerator.colors}] = {{\n"
+        );
+        for(int g = 0; g < Accelerator.numGroups; ++g){
+            if(extra_std[g].Count() == 0){
+                std_lamps.Append("{0},\n");
+                continue;
+            }
+            std_lamps.Append("{");
+            foreach(var std_lamp in extra_std[g]){
+                std_lamps.Append("{");
+                for(int i = 0; i < 3; ++i){
+                    std_lamps.Append($"{{{std_lamp[i,0]},{std_lamp[i,1]},{std_lamp[i,2]},{std_lamp[i,3]}}},");
+                }
+                std_lamps.Append("},");
+            }
+            std_lamps.Append("},\n");
+        }
+
+        std_lamps.Append("};\n");
+
+        write_file("std_lamps.c", std_lamps.ToString());
+
+        return $@"
+for(int j = 0; j < max_connections; ++j){{
+    if(std_lamps[trig[i]][j][0][0] == 0) break;
+    bool xor = std_lamps[trig[i]][j][0][1];
+    for(int c = 0; c < {Accelerator.colors}; ++c){{
+        int g = std_lamps[trig[i]][j][1][c];
+        if(g <= 0) break;
+        xor ^= s[g];
+    }}
+    if(xor){{
+        for(int c = 0; c < {Accelerator.colors}; ++c){{
+            int g = std_lamps[trig[i]][j][2][c];
+            if(g <= 0) break;
+            trig_next[num_trig_next++] = g;
+        }}
+    }}
+}}
+        ";
+
+        /* return ret.ToString(); */
     }
 
 
@@ -169,6 +262,13 @@ static bool s[num_groups] = {{{string.Join(", ", Accelerator.groupState.Take(Acc
 // Pixel boxes
 static bool pb_s[num_pb] = {{0}};
 
+// Clock monitor
+static int clock_group = {Accelerator.clockCount};
+static int clock_count = 0;
+
+// Standard lamp connections
+#include ""std_lamps.c""
+
 void trigger(int input_groups[][colors], int32_t num_inputs){{
     /* printf(""input: %d\n"", input_groups[0][0]); */
     for(int j = 0; j < num_inputs; ++j){{
@@ -198,6 +298,7 @@ void trigger(int input_groups[][colors], int32_t num_inputs){{
 
             for(int i = 0; i < num_trig; ++i){{
                 tog(s[trig[i]]);
+                if(i == clock_group) ++clock_count;
                 {pb_str()}
             }}
 
@@ -225,8 +326,17 @@ void read_pb(uint8_t *pb_states){{
     memset(pb_s, 0, num_pb * sizeof(pb_s[0]));
 }}
 
+int read_clock(){{
+    return clock_count;
+}}
+
+void set_clock(int group){{
+    clock_group = group;
+    clock_count = 0;
+}}
+
 int main(void){{
-    int triggers[1][4] = {{{{15, 16, -1, -1}}}};
+    int triggers[1][4] = {{{{4, -1, -1, -1}}}};
     trigger(triggers, 1);
 
     uint8_t states[num_groups] = {{0}};
@@ -245,22 +355,7 @@ int main(void){{
 }}
 
 ";
-        try
-        {
-            if (!Directory.Exists(work_dir))
-            {
-                Directory.CreateDirectory(work_dir);
-                Console.WriteLine("Directory created successfully.");
-            }
-            // Write the string content to the file
-            File.WriteAllText(work_dir + c_file_name, c_file);
-
-            Console.WriteLine("File written successfully.");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"An error occurred: {ex.Message}");
-        }
+        write_file(c_file_name, c_file);
     
     }
 
@@ -268,7 +363,7 @@ int main(void){{
         // Create a ProcessStartInfo object
         ProcessStartInfo processInfo = new ProcessStartInfo(
             "gcc",
-            $"-fpic -shared -O3 -o {work_dir}{so_file_name} {work_dir}{c_file_name}"
+            $"-fpic -shared -O1 -o {work_dir}{so_file_name} {work_dir}{c_file_name}"
         );
         processInfo.RedirectStandardOutput = true;
         processInfo.RedirectStandardError = true;
@@ -316,10 +411,14 @@ int main(void){{
         IntPtr trigger_ptr = dlsym(libHandle, "trigger");
         IntPtr read_states_ptr = dlsym(libHandle, "read_states");
         IntPtr read_pb_ptr = dlsym(libHandle, "read_pb");
+        IntPtr read_clock_ptr = dlsym(libHandle, "read_clock");
+        IntPtr set_clock_ptr = dlsym(libHandle, "set_clock");
 
         trigger = Marshal.GetDelegateForFunctionPointer<TriggerDelegate>(trigger_ptr);
         read_states = Marshal.GetDelegateForFunctionPointer<ReadStatesDelegate>(read_states_ptr);
         read_pb = Marshal.GetDelegateForFunctionPointer<ReadPbDelegate>(read_pb_ptr);
+        read_clock = Marshal.GetDelegateForFunctionPointer<ReadClockDelegate>(read_clock_ptr);
+        set_clock = Marshal.GetDelegateForFunctionPointer<SetClockDelegate>(set_clock_ptr);
 
         WireHead.useTerracc = true;
         Console.WriteLine("terracc enabled");
@@ -338,6 +437,8 @@ int main(void){{
     public static TriggerDelegate trigger;
     public static ReadStatesDelegate read_states;
     public static ReadPbDelegate read_pb;
+    public static ReadClockDelegate read_clock;
+    public static SetClockDelegate set_clock;
 
     /**********************************************************************
      * Imported functions
@@ -358,5 +459,7 @@ int main(void){{
     public delegate void TriggerDelegate(int[,] input_groups, int num_inputs);
     public delegate void ReadStatesDelegate([Out] byte[] states);
     public delegate void ReadPbDelegate([Out] byte[] pb_states);
+    public delegate int ReadClockDelegate();
+    public delegate void SetClockDelegate(int group);
 
 }

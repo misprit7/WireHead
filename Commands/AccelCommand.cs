@@ -57,8 +57,11 @@ namespace WireHead.Commands
                             WireHead.AddEvents();
                             Accelerator.Preprocess();
                         }
-                        TerraCC.transpile();
-                        TerraCC.compile();
+                        // Lazy switch
+                        if(args.Length <= 1 || (args[1] != "l" && args[1] != "lazy")){
+                            TerraCC.transpile();
+                            TerraCC.compile();
+                        }
                         TerraCC.enable();
                     });
                     break;

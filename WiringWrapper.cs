@@ -436,19 +436,21 @@ namespace Terraria
 
             // Modified to accomodate terracc
             if(WireHead.WireHead.useTerracc){
-                for(int c = 0; c < Accelerator.colors; ++c){
-                    Accelerator.toHit[Accelerator.numToHit,c] = -1;
-                    for(int x = left; x < left+width; ++x){
-                        for(int y = top; y < top+height; ++y){
-                            int g = Accelerator.wireGroup[x, y, c];
-                            if(g == -1) continue;
-                            Accelerator.toHit[Accelerator.numToHit, c] = 
-                                g;
-                            Console.WriteLine($"Trigger c:{c}, group: {g}");
-                        }
-                    }
-                }
-                ++Accelerator.numToHit;
+            for(int c = 0; c < Accelerator.colors; ++c){
+            Accelerator.toHit[Accelerator.numToHit,c] = -1;
+            for(int x = left; x < left+width; ++x){
+            for(int y = top; y < top+height; ++y){
+                int g = Accelerator.wireGroup[x, y, c];
+                if(g == -1) continue;
+                /* if(Accelerator.triggerable[g].Length == Accelerator.groupStandardLamps[g].Count){ */
+
+                Accelerator.toHit[Accelerator.numToHit, c] = g;
+                /* Console.WriteLine($"Trigger c:{c}, group: {g}"); */
+                /* } */
+            }
+            }
+            }
+            ++Accelerator.numToHit;
             }
 
             running = true;
@@ -2538,7 +2540,7 @@ namespace Terraria
             }
         }
 
-        private static void Teleport()
+        public static void Teleport()
         {
             if (_teleport[0].X < _teleport[1].X + 3f && _teleport[0].X > _teleport[1].X - 3f && _teleport[0].Y > _teleport[1].Y - 3f && _teleport[0].Y < _teleport[1].Y)
                 return;
