@@ -298,7 +298,7 @@ void trigger(int input_groups[][colors], int32_t num_inputs){{
 
             for(int i = 0; i < num_trig; ++i){{
                 tog(s[trig[i]]);
-                if(i == clock_group) ++clock_count;
+                if(trig[i] == clock_group) ++clock_count;
                 {pb_str()}
             }}
 
@@ -384,12 +384,12 @@ int main(void){{
         // Wait for the process to finish
         process.WaitForExit();
         if (process.ExitCode != 0)
-            {
-                // Handle the error here or throw an exception if needed
-                Console.WriteLine($"Error occurred. Exit code: {process.ExitCode}");
-                Console.WriteLine($"Error message: {error}");
-                throw new InvalidOperationException("Compiling Failed!");
-            }
+        {
+            // Handle the error here or throw an exception if needed
+            Console.WriteLine($"Error occurred. Exit code: {process.ExitCode}");
+            Console.WriteLine($"Error message: {error}");
+            throw new InvalidOperationException("Compiling Failed!");
+        }
     }
 
     public static void enable(){
@@ -421,6 +421,9 @@ int main(void){{
         set_clock = Marshal.GetDelegateForFunctionPointer<SetClockDelegate>(set_clock_ptr);
 
         WireHead.useTerracc = true;
+        if(Accelerator.clockGroup != -1){
+            set_clock(Accelerator.clockGroup);
+        }
         Console.WriteLine("terracc enabled");
     }
 

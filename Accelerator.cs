@@ -67,8 +67,6 @@ internal static class Accelerator
     // Number of total groups
     // All arrays indexed by groups are guaranteed to be of this size
     public static int numGroups = 0;
-    // Whether group is toggleable or not
-    public static bool[] groupToggleable;
     // State of a group, indexed by group
     public static bool[] groupState;
     // Groups that are out of sync with the world, value is original state of group
@@ -187,7 +185,6 @@ internal static class Accelerator
             if (tile.TileFrameX == 36)
             {
                 triggerableDict[group].Add(new Point16(x, y));
-                groupToggleable[group] = false;
             }
             // On/off
             else
@@ -210,12 +207,10 @@ internal static class Accelerator
                 }
             }
 
-            groupToggleable[group] = false;
         }
         else if (triggeredIDs.Contains(tile.TileType) || tile.HasActuator)
         {
             triggerableDict[group].Add(new Point16(x, y));
-            groupToggleable[group] = false;
         }
         else if (toggleableIDs.Contains(tile.TileType))
         {
@@ -363,7 +358,7 @@ internal static class Accelerator
         //for (int c = 0; c < colors; ++c)
         //{
         //    int group = wireGroup[x, y, c];
-        //    if (group != -1 && groupToggleable[group])
+        //    if (group != -1)
         //    {
         //        ret = ret != groupOutOfSync[group];
         //    }
@@ -372,35 +367,30 @@ internal static class Accelerator
         // Pretty ugly but want to make sure compiler isn't being dumb in above loop
 
         int group = wireGroup[x, y, 0];
-        if (group != -1 && groupToggleable[group])
+        if (group != -1)
         {
             ret = ret != groupOutOfSync[group];
         }
 
         group = wireGroup[x, y, 1];
-        if (group != -1 && groupToggleable[group])
+        if (group != -1)
         {
             ret = ret != groupOutOfSync[group];
         }
 
         group = wireGroup[x, y, 2];
-        if (group != -1 && groupToggleable[group])
+        if (group != -1)
         {
             ret = ret != groupOutOfSync[group];
         }
 
         group = wireGroup[x, y, 3];
-        if (group != -1 && groupToggleable[group])
+        if (group != -1)
         {
             ret = ret != groupOutOfSync[group];
         }
 
         return ret;
-
-        //return groupToggleable[wireGroup[x, y, 0]] 
-        //    != groupToggleable[wireGroup[x, y, 1]]
-        //    != groupToggleable[wireGroup[x, y, 2]]
-        //    != groupToggleable[wireGroup[x, y, 3]];
 
     }
 
@@ -481,40 +471,34 @@ internal static class Accelerator
                 }
             }
 
-            if (groupToggleable[group])
-            {
-                // Keep track of syncing
-                groupOutOfSync[group] = !groupOutOfSync[group];
-                // If all toggleable then no need to directly trigger them
-                groupState[group] = !groupState[group];
-            }
-            else
-            {
-                // If even one triggered tile then must trigger all of them
-                // Supposedly using local variables disables bound checking although I'm doubtful
-                // https://blog.tedd.no/2020/06/01/faster-c-array-access/
-                var tog = toggleable[group];
-                for (int i = 0; i < tog.Length; ++i)
-                {
-                    HitWireSingle(tog[i]);
-                }
-                var trig = triggerable[group];
-                for (int i = 0; i < trig.Length; ++i)
-                {
-                    HitWireSingle(trig[i]);
-                }
+            // Keep track of syncing
+            groupOutOfSync[group] = !groupOutOfSync[group];
+            groupState[group] = !groupState[group];
 
-                // Only bother checking pixel boxes if some are attached to this group
-                if (pixelBoxes[group].Count != 0)
+            // If even one triggered tile then must trigger all of them
+            // Supposedly using local variables disables bound checking although I'm doubtful
+            // https://blog.tedd.no/2020/06/01/faster-c-array-access/
+            /* var tog = toggleable[group]; */
+            /* for (int i = 0; i < tog.Length; ++i) */
+            /* { */
+            /*     HitWireSingle(tog[i]); */
+            /* } */
+            var trig = triggerable[group];
+            for (int i = 0; i < trig.Length; ++i)
+            {
+                HitWireSingle(trig[i]);
+            }
+
+            // Only bother checking pixel boxes if some are attached to this group
+            if (pixelBoxes[group].Count != 0)
+            {
+                for (int i = 0; i < numGroupsTriggered; ++i)
                 {
-                    for (int i = 0; i < numGroupsTriggered; ++i)
+                    int g = groupsTriggered[i];
+                    if (pixelBoxes[group].ContainsKey((g)))
                     {
-                        int g = groupsTriggered[i];
-                        if (pixelBoxes[group].ContainsKey((g)))
-                        {
-                            Point16 point = uint2Point(pixelBoxes[group][g]);
-                            TogglePixelBox(point.X, point.Y);
-                        }
+                        Point16 point = uint2Point(pixelBoxes[group][g]);
+                        TogglePixelBox(point.X, point.Y);
                     }
                 }
             }
@@ -624,7 +608,6 @@ internal static class Accelerator
 
         int group = 0;
         numGroups = 1 << 10;
-        groupToggleable = new bool[numGroups];
         groupState = new bool[numGroups];
         groupOutOfSync = new bool[numGroups];
         pixelBoxes = new Dictionary<int, uint>[numGroups];
@@ -641,12 +624,10 @@ internal static class Accelerator
                         if(group >= numGroups)
                         {
                             numGroups *= 2;
-                            Array.Resize(ref groupToggleable, numGroups);
                             Array.Resize(ref groupState, numGroups);
                             Array.Resize(ref groupOutOfSync, numGroups);
                             Array.Resize(ref pixelBoxes, numGroups);
                         }
-                        groupToggleable[group] = true;
                         groupState[group] = false;
                         groupOutOfSync[group] = false;
 
