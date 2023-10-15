@@ -704,9 +704,9 @@ internal static class Accelerator
             byte[] states = new byte[numGroups];
             TerraCC.read_states(states);
             for(int i = 0; i < numGroups; ++i){
-                if((states[i]==1) != groupState[i]){
-                    Console.WriteLine($"State {i} new state: {states[i]}");
-                }
+                /* if((states[i]==1) != groupState[i]){ */
+                /*     Console.WriteLine($"State {i} new state: {states[i]}"); */
+                /* } */
                 groupOutOfSync[i] = (states[i]==1) != groupState[i];
                 groupState[i] = states[i] == 1;
 

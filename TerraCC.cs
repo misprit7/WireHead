@@ -134,7 +134,7 @@ internal static class TerraCC
                 Point16 p = Accelerator.uint2Point(std_lamp);
                 for(int c = 0, j = 0; c < Accelerator.colors; ++c){
                     int g = Accelerator.wireGroup[p.X, p.Y+1, c];
-                    if(g > 0){
+                    if(g >= 0){
                         xor.Add($"s[{g}]");
                         lamp_data[1, j++] = g;
                     }
@@ -152,7 +152,7 @@ internal static class TerraCC
                 if(xor.Count > 0 || on){
                     for(int c = 0, j = 0; c < Accelerator.colors; ++c){
                         int g = Accelerator.wireGroup[p.X, p.Y+2, c];
-                        if(g > 0){
+                        if(g >= 0){
                             ret.Append($"trig_next[num_trig_next++] = {g};\n");
                             lamp_data[2, j++] = g;
                         }
@@ -211,13 +211,13 @@ for(int j = 0; j < max_connections; ++j){{
     bool xor = std_lamps[trig[i]][j][0][1];
     for(int c = 0; c < {Accelerator.colors}; ++c){{
         int g = std_lamps[trig[i]][j][1][c];
-        if(g <= 0) break;
+        if(g < 0) break;
         xor ^= s[g];
     }}
     if(xor){{
         for(int c = 0; c < {Accelerator.colors}; ++c){{
             int g = std_lamps[trig[i]][j][2][c];
-            if(g <= 0) break;
+            if(g < 0) break;
             trig_next[num_trig_next++] = g;
         }}
     }}
@@ -284,7 +284,7 @@ void trigger(int input_groups[][colors], int32_t num_inputs){{
 
         // Load initial trigger groups
         for(int c = 0; c < colors; ++c){{
-            if(input_groups[j][c] <= 0) continue;
+            if(input_groups[j][c] < 0) continue;
             trig[num_trig] = input_groups[j][c];
             ++num_trig;
         }}
