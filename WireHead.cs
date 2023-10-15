@@ -281,6 +281,7 @@ namespace WireHead
                     TerraCC.set_clock(-1);
                 }
             }
+            Accelerator.BringInSync(false);
 
             foreach (var action in WireHead.toExec)
             {

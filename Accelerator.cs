@@ -106,6 +106,9 @@ internal static class Accelerator
     // In array indexing, red=0, blue=1, green=2, yellow=3
     public const int colors = 4;
 
+    // Maximum number of connected toggleable tiles for fast refresh to be enabled
+    public const int maxFastRefresh = 100;
+
     public static readonly HashSet<int> triggeredIDs = new HashSet<int>
     {
         TileID.LogicGateLamp, // treated specially
@@ -697,7 +700,7 @@ internal static class Accelerator
     /*
      * Brings back into sync after running efficiently
      */
-    public static void BringInSync()
+    public static void BringInSync(bool full=true)
     {
 
         if(WireHead.useTerracc){
@@ -739,8 +742,9 @@ internal static class Accelerator
 
         for (int g = 0; g < numGroups; ++g)
         {
-            if (groupOutOfSync[g] != true) continue;
-            //foreach (Point16 toggleablePoint in toggleable[g])
+            if(!groupOutOfSync[g]) continue;
+            if(!full && toggleable[g].Length >= maxFastRefresh) continue;
+
             for (int i = 0; i < toggleable[g].Length; ++i)
             {
                 uint p = toggleable[g][i];
@@ -750,8 +754,14 @@ internal static class Accelerator
 
                 Point16 point = uint2Point(p);
 
-                if (ShouldChange(point.X, point.Y))
-                {
+                bool xor = false;
+                for(int c = 0; c < colors; ++c){
+                    int c_group = wireGroup[point.X, point.Y, c];
+                    if(c_group >= 0 && (full || toggleable[c_group].Length < maxFastRefresh)){
+                        xor = xor != groupOutOfSync[c_group];
+                    }
+                }
+                if(xor){
                     HitWireSingle(p);
                 }
             }
