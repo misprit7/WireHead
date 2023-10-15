@@ -10,7 +10,8 @@ using SteelSeries.GameSense;
 using Microsoft.Xna.Framework;
 using Terraria.DataStructures;
 using Terraria.GameContent.Tile_Entities;
-using IL.Terraria.ID;
+/* using IL.Terraria.ID; */
+using Terraria.ID;
 
 namespace WireHead
 {
@@ -21,7 +22,7 @@ namespace WireHead
         public static bool useTerracc = false;
         public static ConcurrentQueue<Action> toExec = new ConcurrentQueue<Action>();
 
-        private static void UpdateConnectedClients(On.Terraria.Netplay.orig_UpdateConnectedClients orig)
+        private static void UpdateConnectedClients(Terraria.On_Netplay.orig_UpdateConnectedClients orig)
         {
             // Forces update even if no clients connected by making it think there are always clients
             orig();
@@ -42,26 +43,26 @@ namespace WireHead
             vanillaWiring = false;
             WorldFile.OnWorldLoad += Accelerator.Preprocess;
 
-            On.Terraria.Wiring.SetCurrentUser += Events.SetCurrentUser;
+            Terraria.On_Wiring.SetCurrentUser += Events.SetCurrentUser;
             //On.Terraria.Wiring.Initialize += Events.Initialize;
-            On.Terraria.Wiring.UpdateMech += Events.UpdateMech;
-            On.Terraria.Wiring.HitSwitch += Events.HitSwitch;
-            On.Terraria.Wiring.PokeLogicGate += Events.PokeLogicGate;
-            On.Terraria.Wiring.Actuate += Events.Actuate;
-            On.Terraria.Wiring.ActuateForced += Events.ActuateForced;
+            Terraria.On_Wiring.UpdateMech += Events.UpdateMech;
+            Terraria.On_Wiring.HitSwitch += Events.HitSwitch;
+            Terraria.On_Wiring.PokeLogicGate += Events.PokeLogicGate;
+            Terraria.On_Wiring.Actuate += Events.Actuate;
+            Terraria.On_Wiring.ActuateForced += Events.ActuateForced;
             //On.Terraria.Wiring.MassWireOperation += Events.MassWireOperation;
-            On.Terraria.Wiring.GetProjectileSource += Events.GetProjectileSource;
-            On.Terraria.Wiring.GetNPCSource += Events.GetNPCSource;
-            On.Terraria.Wiring.GetItemSource += Events.GetItemSource;
-            On.Terraria.Wiring.ToggleHolidayLight += Events.ToggleHolidayLight;
-            On.Terraria.Wiring.ToggleHangingLantern += Events.ToggleHangingLantern;
-            On.Terraria.Wiring.Toggle2x2Light += Events.Toggle2x2Light;
-            On.Terraria.Wiring.ToggleLampPost += Events.ToggleLampPost;
-            On.Terraria.Wiring.ToggleTorch += Events.ToggleTorch;
-            On.Terraria.Wiring.ToggleLamp += Events.ToggleLamp;
-            On.Terraria.Wiring.ToggleChandelier += Events.ToggleChandelier;
-            On.Terraria.Wiring.ToggleCampFire += Events.ToggleCampFire;
-            On.Terraria.Wiring.ToggleFirePlace += Events.ToggleFirePlace;
+            Terraria.On_Wiring.GetProjectileSource += Events.GetProjectileSource;
+            Terraria.On_Wiring.GetNPCSource += Events.GetNPCSource;
+            Terraria.On_Wiring.GetItemSource += Events.GetItemSource;
+            Terraria.On_Wiring.ToggleHolidayLight += Events.ToggleHolidayLight;
+            Terraria.On_Wiring.ToggleHangingLantern += Events.ToggleHangingLantern;
+            Terraria.On_Wiring.Toggle2x2Light += Events.Toggle2x2Light;
+            Terraria.On_Wiring.ToggleLampPost += Events.ToggleLampPost;
+            Terraria.On_Wiring.ToggleTorch += Events.ToggleTorch;
+            Terraria.On_Wiring.ToggleLamp += Events.ToggleLamp;
+            Terraria.On_Wiring.ToggleChandelier += Events.ToggleChandelier;
+            Terraria.On_Wiring.ToggleCampFire += Events.ToggleCampFire;
+            Terraria.On_Wiring.ToggleFirePlace += Events.ToggleFirePlace;
             WiringWrapper.Initialize();
         }
 
@@ -73,33 +74,33 @@ namespace WireHead
             vanillaWiring = true;
             WorldFile.OnWorldLoad -= Accelerator.Preprocess;
 
-            On.Terraria.Wiring.SetCurrentUser -= Events.SetCurrentUser;
+            Terraria.On_Wiring.SetCurrentUser -= Events.SetCurrentUser;
             //On.Terraria.Wiring.Initialize -= Events.Initialize;
-            On.Terraria.Wiring.UpdateMech -= Events.UpdateMech;
-            On.Terraria.Wiring.HitSwitch -= Events.HitSwitch;
-            On.Terraria.Wiring.PokeLogicGate -= Events.PokeLogicGate;
-            On.Terraria.Wiring.Actuate -= Events.Actuate;
-            On.Terraria.Wiring.ActuateForced -= Events.ActuateForced;
+            Terraria.On_Wiring.UpdateMech -= Events.UpdateMech;
+            Terraria.On_Wiring.HitSwitch -= Events.HitSwitch;
+            Terraria.On_Wiring.PokeLogicGate -= Events.PokeLogicGate;
+            Terraria.On_Wiring.Actuate -= Events.Actuate;
+            Terraria.On_Wiring.ActuateForced -= Events.ActuateForced;
             //On.Terraria.Wiring.MassWireOperation -= Events.MassWireOperation;
-            On.Terraria.Wiring.GetProjectileSource -= Events.GetProjectileSource;
-            On.Terraria.Wiring.GetNPCSource -= Events.GetNPCSource;
-            On.Terraria.Wiring.GetItemSource -= Events.GetItemSource;
-            On.Terraria.Wiring.ToggleHolidayLight -= Events.ToggleHolidayLight;
-            On.Terraria.Wiring.ToggleHangingLantern -= Events.ToggleHangingLantern;
-            On.Terraria.Wiring.Toggle2x2Light -= Events.Toggle2x2Light;
-            On.Terraria.Wiring.ToggleLampPost -= Events.ToggleLampPost;
-            On.Terraria.Wiring.ToggleTorch -= Events.ToggleTorch;
-            On.Terraria.Wiring.ToggleLamp -= Events.ToggleLamp;
-            On.Terraria.Wiring.ToggleChandelier -= Events.ToggleChandelier;
-            On.Terraria.Wiring.ToggleCampFire -= Events.ToggleCampFire;
-            On.Terraria.Wiring.ToggleFirePlace -= Events.ToggleFirePlace;
+            Terraria.On_Wiring.GetProjectileSource -= Events.GetProjectileSource;
+            Terraria.On_Wiring.GetNPCSource -= Events.GetNPCSource;
+            Terraria.On_Wiring.GetItemSource -= Events.GetItemSource;
+            Terraria.On_Wiring.ToggleHolidayLight -= Events.ToggleHolidayLight;
+            Terraria.On_Wiring.ToggleHangingLantern -= Events.ToggleHangingLantern;
+            Terraria.On_Wiring.Toggle2x2Light -= Events.Toggle2x2Light;
+            Terraria.On_Wiring.ToggleLampPost -= Events.ToggleLampPost;
+            Terraria.On_Wiring.ToggleTorch -= Events.ToggleTorch;
+            Terraria.On_Wiring.ToggleLamp -= Events.ToggleLamp;
+            Terraria.On_Wiring.ToggleChandelier -= Events.ToggleChandelier;
+            Terraria.On_Wiring.ToggleCampFire -= Events.ToggleCampFire;
+            Terraria.On_Wiring.ToggleFirePlace -= Events.ToggleFirePlace;
             Wiring.Initialize();
         }
 
         public override void Load()
         {
             base.Load();
-            On.Terraria.Netplay.UpdateConnectedClients += UpdateConnectedClients;
+            Terraria.On_Netplay.UpdateConnectedClients += UpdateConnectedClients;
             //Array.Resize(ref Main.npc, 1000);
             //for (int i = 201; i < Main.npc.Length; ++i)
             //{
@@ -107,7 +108,7 @@ namespace WireHead
             //    Main.npc[i].whoAmI = i;
             //}
 
-            On.Terraria.NPC.NewNPC += NewNPC;
+            Terraria.On_NPC.NewNPC += NewNPC;
 
             AddEvents();
 
@@ -116,13 +117,13 @@ namespace WireHead
         public override void Unload()
         {
             base.Unload();
-            On.Terraria.Netplay.UpdateConnectedClients -= UpdateConnectedClients;
-            On.Terraria.NPC.NewNPC -= NewNPC;
+            Terraria.On_Netplay.UpdateConnectedClients -= UpdateConnectedClients;
+            Terraria.On_NPC.NewNPC -= NewNPC;
 
             RemoveEvents();
         }
 
-        public static int NewNPC(On.Terraria.NPC.orig_NewNPC orig,
+        public static int NewNPC(Terraria.On_NPC.orig_NewNPC orig,
             IEntitySource source, int X, int Y, int Type, int Start = 0, float ai0 = 0f, float ai1 = 0f,
             float ai2 = 0f, float ai3 = 0f, int Target = 255)
         {
@@ -165,82 +166,82 @@ namespace WireHead
          */
         private class Events
         {
-            public static void SetCurrentUser(On.Terraria.Wiring.orig_SetCurrentUser orig, int plr) { 
+            public static void SetCurrentUser(Terraria.On_Wiring.orig_SetCurrentUser orig, int plr) { 
                 WiringWrapper.SetCurrentUser(plr); 
             }
             //public static void Initialize(On.Terraria.Wiring.orig_Initialize orig)
             //{
             //    WiringWrapper.Initialize();
             //}
-            public static void UpdateMech(On.Terraria.Wiring.orig_UpdateMech orig)
+            public static void UpdateMech(Terraria.On_Wiring.orig_UpdateMech orig)
             {
                 WiringWrapper.UpdateMech();
             }
-            public static void HitSwitch(On.Terraria.Wiring.orig_HitSwitch orig, int i, int j)
+            public static void HitSwitch(Terraria.On_Wiring.orig_HitSwitch orig, int i, int j)
             {
                 WiringWrapper.HitSwitch(i, j);
             }
-            public static void PokeLogicGate(On.Terraria.Wiring.orig_PokeLogicGate orig, int x, int y)
+            public static void PokeLogicGate(Terraria.On_Wiring.orig_PokeLogicGate orig, int x, int y)
             {
                 WiringWrapper.PokeLogicGate(x, y);
             }
-            public static bool Actuate(On.Terraria.Wiring.orig_Actuate orig, int i, int j)
+            public static bool Actuate(Terraria.On_Wiring.orig_Actuate orig, int i, int j)
             {
                 return WiringWrapper.Actuate(i, j);
             }
-            public static void ActuateForced(On.Terraria.Wiring.orig_ActuateForced orig, int i, int j)
+            public static void ActuateForced(Terraria.On_Wiring.orig_ActuateForced orig, int i, int j)
             {
                 WiringWrapper.ActuateForced(i, j);
             }
-            public static void MassWireOperation(On.Terraria.Wiring.orig_MassWireOperation orig, Point ps, Point pe, Player master)
+            public static void MassWireOperation(Terraria.On_Wiring.orig_MassWireOperation orig, Point ps, Point pe, Player master)
             {
                 WiringWrapper.MassWireOperation(ps, pe, master);
             }
-            public static IEntitySource GetProjectileSource(On.Terraria.Wiring.orig_GetProjectileSource orig, int x, int y)
+            public static IEntitySource GetProjectileSource(Terraria.On_Wiring.orig_GetProjectileSource orig, int x, int y)
             {
                 return WiringWrapper.GetProjectileSource(x, y);
             }
-            public static IEntitySource GetNPCSource(On.Terraria.Wiring.orig_GetNPCSource orig, int x, int y)
+            public static IEntitySource GetNPCSource(Terraria.On_Wiring.orig_GetNPCSource orig, int x, int y)
             {
                 return WiringWrapper.GetNPCSource(x, y);
             }
-            public static IEntitySource GetItemSource(On.Terraria.Wiring.orig_GetItemSource orig, int x, int y)
+            public static IEntitySource GetItemSource(Terraria.On_Wiring.orig_GetItemSource orig, int x, int y)
             {
                 return WiringWrapper.GetItemSource(x, y);
             }
-            public static void ToggleHolidayLight(On.Terraria.Wiring.orig_ToggleHolidayLight orig, int i, int j, Tile tileCache, bool? f)
+            public static void ToggleHolidayLight(Terraria.On_Wiring.orig_ToggleHolidayLight orig, int i, int j, Tile tileCache, bool? f)
             {
                 WiringWrapper.ToggleHolidayLight(i, j, tileCache, f);
             }
-            public static void ToggleHangingLantern(On.Terraria.Wiring.orig_ToggleHangingLantern orig, int i, int j, Tile tileCache, bool? f, bool d)
+            public static void ToggleHangingLantern(Terraria.On_Wiring.orig_ToggleHangingLantern orig, int i, int j, Tile tileCache, bool? f, bool d)
             {
                 WiringWrapper.ToggleHangingLantern(i, j, tileCache, f, d);
             }
-            public static void Toggle2x2Light(On.Terraria.Wiring.orig_Toggle2x2Light orig, int i, int j, Tile tileCache, bool? f, bool d)
+            public static void Toggle2x2Light(Terraria.On_Wiring.orig_Toggle2x2Light orig, int i, int j, Tile tileCache, bool? f, bool d)
             {
                 WiringWrapper.Toggle2x2Light(i, j, tileCache, f, d);
             }
-            public static void ToggleLampPost(On.Terraria.Wiring.orig_ToggleLampPost orig, int i, int j, Tile tileCache, bool? f, bool d)
+            public static void ToggleLampPost(Terraria.On_Wiring.orig_ToggleLampPost orig, int i, int j, Tile tileCache, bool? f, bool d)
             {
                 WiringWrapper.ToggleLampPost(i, j, tileCache, f, d);
             }
-            public static void ToggleTorch(On.Terraria.Wiring.orig_ToggleTorch orig, int i, int j, Tile tileCache, bool? f)
+            public static void ToggleTorch(Terraria.On_Wiring.orig_ToggleTorch orig, int i, int j, Tile tileCache, bool? f)
             {
                 WiringWrapper.ToggleTorch(i, j, tileCache, f);
             }
-            public static void ToggleLamp(On.Terraria.Wiring.orig_ToggleLamp orig, int i, int j, Tile tileCache, bool? f, bool d)
+            public static void ToggleLamp(Terraria.On_Wiring.orig_ToggleLamp orig, int i, int j, Tile tileCache, bool? f, bool d)
             {
                 WiringWrapper.ToggleLamp(i, j, tileCache, f, d);
             }
-            public static void ToggleChandelier(On.Terraria.Wiring.orig_ToggleChandelier orig, int i, int j, Tile tileCache, bool? f, bool d)
+            public static void ToggleChandelier(Terraria.On_Wiring.orig_ToggleChandelier orig, int i, int j, Tile tileCache, bool? f, bool d)
             {
                 WiringWrapper.ToggleChandelier(i, j, tileCache, f, d);
             }
-            public static void ToggleCampFire(On.Terraria.Wiring.orig_ToggleCampFire orig, int i, int j, Tile tileCache, bool? f, bool d)
+            public static void ToggleCampFire(Terraria.On_Wiring.orig_ToggleCampFire orig, int i, int j, Tile tileCache, bool? f, bool d)
             {
                 WiringWrapper.ToggleCampFire(i, j, tileCache, f, d);
             }
-            public static void ToggleFirePlace(On.Terraria.Wiring.orig_ToggleFirePlace orig, int i, int j, Tile tileCache, bool? f, bool d)
+            public static void ToggleFirePlace(Terraria.On_Wiring.orig_ToggleFirePlace orig, int i, int j, Tile tileCache, bool? f, bool d)
             {
                 WiringWrapper.ToggleFirePlace(i, j, tileCache, f, d);
             }

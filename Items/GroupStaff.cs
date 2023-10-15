@@ -9,8 +9,8 @@ namespace WireHead.Items
     {
         public override void SetStaticDefaults()
         {
-            DisplayName.SetDefault("Group Staff");
-            Tooltip.SetDefault("Prints groups under mouse to chat on use.");
+            // DisplayName.SetDefault("Group Staff");
+            // Tooltip.SetDefault("Prints groups under mouse to chat on use.");
         }
 
         public override void SetDefaults()

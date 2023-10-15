@@ -1,0 +1,21 @@
+Items: {
+	CoordStaff: {
+		DisplayName: Coord Staff
+		Tooltip: ""
+	}
+
+	GroupStaff: {
+		DisplayName: Group Staff
+		Tooltip: ""
+	}
+
+	StateStaff: {
+		DisplayName: State Staff
+		Tooltip: ""
+	}
+
+	TriggerStaff: {
+		DisplayName: Trigger Staff
+		Tooltip: ""
+	}
+}

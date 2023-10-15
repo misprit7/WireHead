@@ -9,8 +9,8 @@ namespace WireHead.Items
     {
         public override void SetStaticDefaults()
         {
-            DisplayName.SetDefault("Coordinate Staff");
-            Tooltip.SetDefault("Prints mouse coordinates to chat on use.");
+            // DisplayName.SetDefault("Coordinate Staff");
+            // Tooltip.SetDefault("Prints mouse coordinates to chat on use.");
         }
 
         public override void SetDefaults()

@@ -9,8 +9,8 @@ namespace WireHead.Items
     {
         public override void SetStaticDefaults()
         {
-            DisplayName.SetDefault("Trigger Staff");
-            Tooltip.SetDefault("Triggers the wires at your cursor.");
+            // DisplayName.SetDefault("Trigger Staff");
+            // Tooltip.SetDefault("Triggers the wires at your cursor.");
         }
 
         public override void SetDefaults()

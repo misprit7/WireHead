@@ -8,8 +8,8 @@ namespace WireHead.Items
     {
         public override void SetStaticDefaults()
         {
-            DisplayName.SetDefault("State Staff");
-            Tooltip.SetDefault("Toggles logic gate lamp under cursor.");
+            // DisplayName.SetDefault("State Staff");
+            // Tooltip.SetDefault("Toggles logic gate lamp under cursor.");
         }
 
         public override void SetDefaults()
