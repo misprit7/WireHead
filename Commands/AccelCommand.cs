@@ -21,7 +21,7 @@ namespace WireHead.Commands
                 case "s":
                     // Print to console later once sync is actually finished
                     WireHead.toExec.Enqueue(() => {
-                        Accelerator.BringInSync();
+                        Accelerator.BringInSync(true);
                         Console.WriteLine("Sync complete");
                     });
                     break;
@@ -52,7 +52,9 @@ namespace WireHead.Commands
                 case "compile":
                 case "terracc":
                 case "c":
+                    Console.WriteLine("Received compile command");
                     WireHead.toExec.Enqueue(() => {
+                        Console.WriteLine("Starting toExec");
                         if (WireHead.vanillaWiring){
                             WireHead.AddEvents();
                             Accelerator.Preprocess();
@@ -63,6 +65,7 @@ namespace WireHead.Commands
                             TerraCC.compile();
                         }
                         TerraCC.enable();
+                        Console.WriteLine("Executed compile command");
                     });
                     break;
                 default:

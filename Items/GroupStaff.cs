@@ -2,6 +2,7 @@ using Terraria;
 using Terraria.ID;
 using Terraria.ModLoader;
 using Microsoft.Xna.Framework;
+using System.Text;
 
 namespace WireHead.Items
 {
@@ -32,7 +33,20 @@ namespace WireHead.Items
         {
             int x = Player.tileTargetX;
             int y = Player.tileTargetY;
-            Main.NewText($"Red: {Accelerator.wireGroup[x,y,0]}, Blue: {Accelerator.wireGroup[x,y,1]}, Green: {Accelerator.wireGroup[x,y,2]}, Yellow: {Accelerator.wireGroup[x,y,3]}");
+            StringBuilder sb = new StringBuilder();
+            string[] clrs = {"Red", "Blue", "Green", "Yellow"};
+            for(int c = 0; c < Accelerator.colors; ++c){
+                sb.Append(clrs[c] + ": ");
+                int g = Accelerator.wireGroup[x,y,c];
+                sb.Append(g);
+                if(g>= 0){
+                    sb.Append($" ({(Accelerator.groupState[g] ? 1 : 0)}, {(Accelerator.groupOutOfSync[g] ? 1 : 0)})");
+                }
+                if(c != 3){
+                    sb.Append(", ");
+                }
+            }
+            Main.NewText(sb.ToString());
 
             return true;
         }

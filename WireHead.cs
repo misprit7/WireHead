@@ -266,6 +266,11 @@ namespace WireHead
         // This used to be PostUpdateWorld, have no idea why it randomly broke
         public override void PostUpdateEverything()
         {
+            foreach (var action in WireHead.toExec)
+            {
+                action();
+            }
+            WireHead.toExec.Clear();
             
             if(WireHead.useTerracc){
                 if(Accelerator.numToHit > 0){
@@ -274,21 +279,36 @@ namespace WireHead
                 TerraCC.trigger(Accelerator.toHit, Accelerator.numToHit);
                 Accelerator.numToHit = 0;
                 Accelerator.SyncPb();
-                Accelerator.clockCount = TerraCC.read_clock();
+                int cc = TerraCC.read_clock();
+                // Only do even number of times, bringinsync handles last one if odd
+                /* Console.WriteLine($"Diff: {(cc-Accelerator.clockCount)}, to trigger: {2*((cc-Accelerator.clockCount)/2)}, clockGroup: {Accelerator.clockGroup}, size: {Accelerator.triggerable[Accelerator.clockGroup].Length}"); */
+                for(int i = 0; i < 2*((cc-Accelerator.clockCount)/2); ++i){
+                    WiringWrapper._teleport[0].X = -1f;
+                    WiringWrapper._teleport[0].Y = -1f;
+                    WiringWrapper._teleport[1].X = -1f;
+                    WiringWrapper._teleport[1].Y = -1f;
+                    foreach(uint tile in Accelerator.triggerable[Accelerator.clockGroup]){
+                        Point16 p = Accelerator.uint2Point(tile);
+                        if(Accelerator.standardLamps[p.X,p.Y]) continue;
+                        Accelerator.HitWireSingle(tile);
+                        /* Console.WriteLine($"Triggering, x:{p.X}, y:{p.Y}"); */
+                    }
+                    if (WiringWrapper._teleport[0].X >= 0f && WiringWrapper._teleport[1].X >= 0f)
+                        WiringWrapper.Teleport();
+                }
+                Accelerator.clockCount = cc;
                 if(Accelerator.clockCount > Accelerator.clockMax){
                     Console.WriteLine("Clock finished");
                     Accelerator.clockCount = 0;
                     TerraCC.set_clock(-1);
                 }
             }
-            Accelerator.BringInSync(false);
 
-            foreach (var action in WireHead.toExec)
-            {
-                action();
+            // Only fast refresh in single player to minimize network stuff
+            if (Main.netMode == NetmodeID.SinglePlayer){
+                Accelerator.BringInSync(false);
             }
 
-            WireHead.toExec.Clear();
             base.PostUpdateWorld();
         }
     }

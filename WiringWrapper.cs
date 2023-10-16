@@ -27,7 +27,8 @@ namespace Terraria
 {
     public static class WiringWrapper
     {
-        public static bool blockPlayerTeleportationForOneIteration;
+        // Use Wiring.blockPlayerTeleportationForOneIteration since other files check it
+        /* public static bool blockPlayerTeleportationForOneIteration; */
         public static bool running;
         public static Dictionary<Point16, bool> _wireSkip;
         public static DoubleStack<Point16> _wireList;
@@ -644,10 +645,9 @@ namespace Terraria
             }
 
             _GatesDone.Clear();
-            if (blockPlayerTeleportationForOneIteration)
+            if (Wiring.blockPlayerTeleportationForOneIteration)
             {
                 // Other files check this so we need to make sure it stays in sync
-                blockPlayerTeleportationForOneIteration = false;
                 Wiring.blockPlayerTeleportationForOneIteration = false;
             }
         }
@@ -2560,7 +2560,7 @@ namespace Terraria
                 if (i == 1)
                     value = new Vector2(array[0].X - array[1].X, array[0].Y - array[1].Y);
 
-                if (!blockPlayerTeleportationForOneIteration)
+                if (!Wiring.blockPlayerTeleportationForOneIteration)
                 {
                     for (int j = 0; j < 255; j++)
                     {

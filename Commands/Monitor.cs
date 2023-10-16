@@ -47,6 +47,7 @@ public class Monitor
                         }
 
                         Accelerator.clockGroup = group;
+                        Accelerator.clockCount = 0;
                         if(WireHead.useTerracc)
                             WireHead.toExec.Enqueue(()=>TerraCC.set_clock(group));
                         if (max > 0)

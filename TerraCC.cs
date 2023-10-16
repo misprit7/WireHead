@@ -240,8 +240,8 @@ for(int j = 0; j < max_connections; ++j){{
      */
     public static void transpile()
     {
-
-         string c_file = $@"
+        Accelerator.Preprocess();
+        string c_file = $@"
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -263,7 +263,7 @@ static bool s[num_groups] = {{{string.Join(", ", Accelerator.groupState.Take(Acc
 static bool pb_s[num_pb] = {{0}};
 
 // Clock monitor
-static int clock_group = {Accelerator.clockCount};
+static int clock_group = {Accelerator.clockGroup};
 static int clock_count = 0;
 
 // Standard lamp connections
@@ -375,6 +375,7 @@ int main(void){{
         process.StartInfo = processInfo;
 
         // Start the process
+        Console.WriteLine($"Started compiling");
         process.Start();
 
         // Read the standard output of the command

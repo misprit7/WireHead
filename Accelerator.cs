@@ -86,6 +86,8 @@ internal static class Accelerator
     public static int clockGroup = -1;
     public static int clockCount = 0;
     public static int clockMax = int.MaxValue;
+    public static Point default_clock_coord = new Point(3194,153);
+    public static int default_clock_clr = 3;
 
     /**********************************************************************
      * Construction Variables
@@ -325,7 +327,7 @@ internal static class Accelerator
     /*
      * Hit a single wire
      */
-    private static void HitWireSingle(uint p)
+    public static void HitWireSingle(uint p)
     {
         // _wireSkip should 100% be a hashset, come on relogic
         //if (WiringWrapper._wireSkip.ContainsKey(p)) return;
@@ -453,6 +455,7 @@ internal static class Accelerator
             var p = next.PopFront();
             int group = wireGroup[p.X, p.Y, c];
 
+
             /* if(WireHead.useTerracc && triggerable[group].Length == groupStandardLamps[group].Count) continue; */
 
             if (alreadyHit.Contains(group)) continue;
@@ -465,11 +468,9 @@ internal static class Accelerator
             if (group == clockGroup)
             {
                 ++clockCount;
-                if (clockCount > clockMax)
+                if (clockCount == clockMax)
                 {
                     Console.WriteLine("Clock finished");
-                    clockCount = 0;
-                    clockGroup = -1;
                     clockMax = int.MaxValue;
                 }
             }
@@ -678,7 +679,8 @@ internal static class Accelerator
         // Inverts pbId2Coord to a dictionary with inverse mapping
         pbCoord2Id = pbId2Coord.Select((s, i) => new { s, i }).ToDictionary(x => x.s, x => x.i);
         numPb = pbId2Coord.Count();
-
+        // Hardcoded default
+        clockGroup = wireGroup[default_clock_coord.X, default_clock_coord.Y, default_clock_clr];
     }
 
     /*
@@ -706,16 +708,23 @@ internal static class Accelerator
         if(WireHead.useTerracc){
             byte[] states = new byte[numGroups];
             TerraCC.read_states(states);
-            for(int i = 0; i < numGroups; ++i){
+            for(int g = 0; g < numGroups; ++g){
                 /* if((states[i]==1) != groupState[i]){ */
                 /*     Console.WriteLine($"State {i} new state: {states[i]}"); */
                 /* } */
-                groupOutOfSync[i] = (states[i]==1) != groupState[i];
-                groupState[i] = states[i] == 1;
+
+
+                groupOutOfSync[g] = (states[g]==1) != groupState[g];
 
                 // Do our best to handle triggered blocks, this will only work
                 // if they've triggered at most once since the last sync though
-                if(groupOutOfSync[i]){
+                if(groupOutOfSync[g]){
+                    // Don't update internal state if too big an update
+                    if(!full && toggleable[g].Length >= maxFastRefresh) continue;
+
+                    // Note: this means that after a fast sync some states will won't be pulled in
+                    groupState[g] = states[g] == 1;
+
                     // This might not be robust, I think if you make purposefully
                     // confusing chained teleporters this breaks.
                     //
@@ -725,7 +734,7 @@ internal static class Accelerator
                     WiringWrapper._teleport[0].Y = -1f;
                     WiringWrapper._teleport[1].X = -1f;
                     WiringWrapper._teleport[1].Y = -1f;
-                    foreach(uint tile in triggerable[i]){
+                    foreach(uint tile in triggerable[g]){
                         Point16 p = uint2Point(tile);
                         if(standardLamps[p.X,p.Y]) break;
                         HitWireSingle(tile);
