@@ -4,6 +4,8 @@ on:
   push:
     paths:
       - '**.cs'
+    branches:
+        - main
 jobs:
   trigger:
     name: Send Repository Trigger

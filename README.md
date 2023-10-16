@@ -6,6 +6,7 @@
 <h2 align="center">
   A drastically faster reimplementation of Terraria wiring
 </h2>
+
 <div align="center">
   <a href=https://github.com/misprit7/computerraria/actions/workflows/in-game-tests.yml>
     <img src=https://github.com/misprit7/computerraria/actions/workflows/in-game-tests.yml/badge.svg/>
@@ -116,9 +117,4 @@ This is just the truth table for XOR. In general, if a toggleable tile is connec
 Upon seeing this you might instinctively feel like this is "cheating"; the in-game, visual representation of the toggleable tiles is no longer being preserved. The important point here though is that all information is 100% being conserved. At any point, you can loop through the entire world, and for each tile update it to what it "should" be based on the current group states, then reset all the group states back to "off." In WireHead this is implemented through the ``/accel sync`` command. In my view this preserves the vanilla logic system, as the actual functionality and internal state is being maintained. 
 
 Of course this approach does have its limitations. The group state only works on groups that only contain toggleable tiles, since triggerable must always be evaluated immediately. Since regular logic gates are all triggerable, it means that the only feasible way to make RAM in this way is with faulty logic gates. However, if as a circuit maker you jump through these hoops and keep these considerations in mind the benefit is huge. Instead of traversing the width of a hypothetical binary tree we've reduced the problem to toggling a single bit, which is obviously much faster. Time complexity wise this approach reduces a wire press (for a group with only toggleable tiles) from $O(m+n)$ to $O(1)$, for real this time. 
-
-## Micro-Optimizations
-
-To be continued
-<!-- Even once you implement the changes described above to vanilla code, -->
 

@@ -27,7 +27,8 @@ namespace Terraria
 {
     public static class WiringWrapper
     {
-        public static bool blockPlayerTeleportationForOneIteration;
+        // Use Wiring.blockPlayerTeleportationForOneIteration since other files check it
+        /* public static bool blockPlayerTeleportationForOneIteration; */
         public static bool running;
         public static Dictionary<Point16, bool> _wireSkip;
         public static DoubleStack<Point16> _wireList;
@@ -429,10 +430,29 @@ namespace Terraria
             }
         }
 
-        public static void TripWire(int left, int top, int width, int height)
+    public static void TripWire(int left, int top, int width, int height)
         {
             if (Main.netMode == 1)
                 return;
+
+            // Modified to accomodate terracc
+            if(WireHead.WireHead.useTerracc){
+            for(int c = 0; c < Accelerator.colors; ++c){
+            Accelerator.toHit[Accelerator.numToHit,c] = -1;
+            for(int x = left; x < left+width; ++x){
+            for(int y = top; y < top+height; ++y){
+                int g = Accelerator.wireGroup[x, y, c];
+                if(g == -1) continue;
+                /* if(Accelerator.triggerable[g].Length == Accelerator.groupStandardLamps[g].Count){ */
+
+                Accelerator.toHit[Accelerator.numToHit, c] = g;
+                /* Console.WriteLine($"Trigger c:{c}, group: {g}"); */
+                /* } */
+            }
+            }
+            }
+            ++Accelerator.numToHit;
+            }
 
             running = true;
             if (_wireList.Count != 0)
@@ -625,10 +645,9 @@ namespace Terraria
             }
 
             _GatesDone.Clear();
-            if (blockPlayerTeleportationForOneIteration)
+            if (Wiring.blockPlayerTeleportationForOneIteration)
             {
                 // Other files check this so we need to make sure it stays in sync
-                blockPlayerTeleportationForOneIteration = false;
                 Wiring.blockPlayerTeleportationForOneIteration = false;
             }
         }
@@ -2521,7 +2540,7 @@ namespace Terraria
             }
         }
 
-        private static void Teleport()
+        public static void Teleport()
         {
             if (_teleport[0].X < _teleport[1].X + 3f && _teleport[0].X > _teleport[1].X - 3f && _teleport[0].Y > _teleport[1].Y - 3f && _teleport[0].Y < _teleport[1].Y)
                 return;
@@ -2541,7 +2560,7 @@ namespace Terraria
                 if (i == 1)
                     value = new Vector2(array[0].X - array[1].X, array[0].Y - array[1].Y);
 
-                if (!blockPlayerTeleportationForOneIteration)
+                if (!Wiring.blockPlayerTeleportationForOneIteration)
                 {
                     for (int j = 0; j < 255; j++)
                     {
