@@ -65,7 +65,6 @@ namespace WireHead.Commands
                             TerraCC.compile();
                         }
                         TerraCC.enable();
-                        Console.WriteLine("Executed compile command");
                     });
                     break;
                 default:

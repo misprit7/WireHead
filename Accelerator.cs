@@ -3,13 +3,8 @@ using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using Terraria;
 using Terraria.DataStructures;
-using Terraria.Enums;
 using Terraria.ID;
 using Terraria.ModLoader;
 
@@ -680,7 +675,9 @@ internal static class Accelerator
         pbCoord2Id = pbId2Coord.Select((s, i) => new { s, i }).ToDictionary(x => x.s, x => x.i);
         numPb = pbId2Coord.Count();
         // Hardcoded default
-        clockGroup = wireGroup[default_clock_coord.X, default_clock_coord.Y, default_clock_clr];
+        if(default_clock_coord.X < Main.maxTilesX && default_clock_coord.Y < Main.maxTilesY){
+            clockGroup = wireGroup[default_clock_coord.X, default_clock_coord.Y, default_clock_clr];
+        }
     }
 
     /*
