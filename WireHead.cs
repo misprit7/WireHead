@@ -1,16 +1,10 @@
 using Terraria.ModLoader;
 using Terraria.IO;
-using WireHead.Commands;
 using System;
 using System.Collections.Concurrent;
-using System.Runtime.InteropServices;
-using Steamworks;
 using Terraria;
-using SteelSeries.GameSense;
 using Microsoft.Xna.Framework;
 using Terraria.DataStructures;
-using Terraria.GameContent.Tile_Entities;
-/* using IL.Terraria.ID; */
 using Terraria.ID;
 
 namespace WireHead

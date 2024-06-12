@@ -183,27 +183,25 @@ unreachable();
         int max_connections = extra_std.Max(list => list.Count());
         std_lamps.Append($"#define max_connections {max_connections}\n");
         std_lamps.Append(
-            $"static int std_lamps[{Accelerator.numGroups}][{max_connections}][3][{Accelerator.colors}] = {{\n"
+            $"static int std_lamps[{Accelerator.numGroups}][{max_connections}][3][{Accelerator.colors}];"
         );
+        write_file("std_lamps.h", std_lamps.ToString());
+
+        StringBuilder std_lamps_data = new StringBuilder();
         for(int g = 0; g < Accelerator.numGroups; ++g){
-            if(extra_std[g].Count() == 0){
-                std_lamps.Append("{0},\n");
-                continue;
-            }
-            std_lamps.Append("{");
+            std_lamps_data.Append("{\n");
             foreach(var std_lamp in extra_std[g]){
-                std_lamps.Append("{");
+                std_lamps_data.Append("{");
                 for(int i = 0; i < 3; ++i){
-                    std_lamps.Append($"{{{std_lamp[i,0]},{std_lamp[i,1]},{std_lamp[i,2]},{std_lamp[i,3]}}},");
+                    std_lamps_data.Append($"{{{std_lamp[i,0]},{std_lamp[i,1]},{std_lamp[i,2]},{std_lamp[i,3]}}},");
                 }
-                std_lamps.Append("},");
+                std_lamps_data.Append("},\n");
             }
-            std_lamps.Append("},\n");
+            std_lamps_data.Append("},\n");
         }
 
-        std_lamps.Append("};\n");
 
-        write_file("std_lamps.c", std_lamps.ToString());
+        write_file("std_lamps_data.txt", std_lamps_data.ToString());
 
         return $@"
 for(int j = 0; j < max_connections; ++j){{
@@ -245,6 +243,7 @@ for(int j = 0; j < max_connections; ++j){{
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <stddef.h>
 
@@ -267,7 +266,54 @@ static int clock_group = {Accelerator.clockGroup};
 static int clock_count = 0;
 
 // Standard lamp connections
-#include ""std_lamps.c""
+#include ""std_lamps.h""
+
+void init(){{
+    FILE *std_lamps_f = fopen(""/tmp/terracc/std_lamps_data.txt"", ""r"");
+    if(std_lamps_f == NULL){{
+        perror(""Failed to open std_lamps_data.txt!"");
+        return;
+    }}
+    for(int i = 0; i < sizeof(std_lamps)/sizeof(std_lamps[0]); ++i){{
+        char line[100];
+
+        // Gets first {{,
+        fgets(line, sizeof(line), std_lamps_f);
+        if(line[0] != '{{'){{
+            printf(""Read format not as expected!"");
+        }}
+        // Gets data
+        fgets(line, sizeof(line), std_lamps_f);
+
+        int j = 0;
+        while(sscanf(line, ""{{{{%d,%d,%d,%d}},{{%d,%d,%d,%d}},{{%d,%d,%d,%d}},}},"",
+                    &std_lamps[i][j][0][0], &std_lamps[i][j][0][1], &std_lamps[i][j][0][2], &std_lamps[i][j][0][3],
+                    &std_lamps[i][j][1][0], &std_lamps[i][j][1][1], &std_lamps[i][j][1][2], &std_lamps[i][j][1][3],
+                    &std_lamps[i][j][2][0], &std_lamps[i][j][2][1], &std_lamps[i][j][2][2], &std_lamps[i][j][2][3]
+                    ) == 12){{
+            fgets(line, sizeof(line), std_lamps_f);
+            ++j;
+        }}
+        // Data has been read so line should be }},
+        if(line[0] != '}}'){{
+            printf(""Read format not as expected!"");
+        }}
+    }}
+    fclose(std_lamps_f);
+
+    /* FILE *file; */
+    /* char *filename = ""/tmp/test.txt""; */
+
+    /* // Open the file for writing */
+    /* file = fopen(filename, ""w""); */
+    /* // Write data to the file */
+    /* fprintf(file, ""Finished init\n""); */
+
+    /* // Close the file */
+    /* fclose(file); */
+
+    /* /1* printf(""Finished init!\n""); *1/ */
+}}
 
 void trigger(int input_groups[][colors], int32_t num_inputs){{
     /* printf(""input: %d\n"", input_groups[0][0]); */
@@ -336,6 +382,9 @@ void set_clock(int group){{
 }}
 
 int main(void){{
+
+    init();
+
     int triggers[1][4] = {{{{4, -1, -1, -1}}}};
     trigger(triggers, 1);
 
@@ -352,6 +401,13 @@ int main(void){{
         printf(""%d "", pb_states[i]);
     }}
     printf(""\n"");
+
+    for(int i = 0; i < sizeof(std_lamps) / sizeof(std_lamps[0]); ++i){{
+        for(int j = 0; j < 12; ++j){{
+            printf(""%d, "", std_lamps[i][0][0][j]);
+        }}
+        printf(""\n"");
+    }}
 }}
 
 ";
@@ -414,14 +470,18 @@ int main(void){{
         IntPtr read_pb_ptr = dlsym(libHandle, "read_pb");
         IntPtr read_clock_ptr = dlsym(libHandle, "read_clock");
         IntPtr set_clock_ptr = dlsym(libHandle, "set_clock");
+        IntPtr init_ptr = dlsym(libHandle, "init");
 
         trigger = Marshal.GetDelegateForFunctionPointer<TriggerDelegate>(trigger_ptr);
         read_states = Marshal.GetDelegateForFunctionPointer<ReadStatesDelegate>(read_states_ptr);
         read_pb = Marshal.GetDelegateForFunctionPointer<ReadPbDelegate>(read_pb_ptr);
         read_clock = Marshal.GetDelegateForFunctionPointer<ReadClockDelegate>(read_clock_ptr);
         set_clock = Marshal.GetDelegateForFunctionPointer<SetClockDelegate>(set_clock_ptr);
+        init = Marshal.GetDelegateForFunctionPointer<InitDelegate>(init_ptr);
 
         WireHead.useTerracc = true;
+        Console.WriteLine("Reading in lamp data");
+        init();
         if(Accelerator.clockGroup != -1){
             set_clock(Accelerator.clockGroup);
         }
@@ -443,6 +503,7 @@ int main(void){{
     public static ReadPbDelegate read_pb;
     public static ReadClockDelegate read_clock;
     public static SetClockDelegate set_clock;
+    public static InitDelegate init;
 
     /**********************************************************************
      * Imported functions
@@ -465,5 +526,6 @@ int main(void){{
     public delegate void ReadPbDelegate([Out] byte[] pb_states);
     public delegate int ReadClockDelegate();
     public delegate void SetClockDelegate(int group);
+    public delegate void InitDelegate();
 
 }
