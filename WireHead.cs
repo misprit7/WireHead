@@ -14,6 +14,7 @@ namespace WireHead
 
         public static bool vanillaWiring = false;
         public static bool useTerracc = false;
+        public static bool colorPB = true;
         public static ConcurrentQueue<Action> toExec = new ConcurrentQueue<Action>();
 
         private static void UpdateConnectedClients(Terraria.On_Netplay.orig_UpdateConnectedClients orig)

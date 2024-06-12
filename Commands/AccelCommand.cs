@@ -1,4 +1,5 @@
 ﻿using System;
+using Terraria;
 using Terraria.ModLoader;
 
 namespace WireHead.Commands
@@ -15,6 +16,7 @@ namespace WireHead.Commands
                     WireHead.toExec.Enqueue(() => {
                         Accelerator.Preprocess();
                         Console.WriteLine("Preprocessing complete");
+                        Main.NewText("Preprocessed");
                     });
                     break;
                 case "sync":
@@ -23,6 +25,7 @@ namespace WireHead.Commands
                     WireHead.toExec.Enqueue(() => {
                         Accelerator.BringInSync(true);
                         Console.WriteLine("Sync complete");
+                        Main.NewText("Synced");
                     });
                     break;
                 case "enable":
@@ -32,6 +35,7 @@ namespace WireHead.Commands
                         {
                             WireHead.AddEvents();
                             Accelerator.Preprocess();
+                            Main.NewText("WireHead enabled");
                         }
                         TerraCC.disable();
                         Console.WriteLine("Traditional accelerator enabled");
@@ -45,6 +49,7 @@ namespace WireHead.Commands
                             Accelerator.BringInSync();
                             WireHead.RemoveEvents();
                             TerraCC.disable();
+                            Main.NewText("WireHead disabled");
                         }
                         Console.WriteLine("Accelerator disabled");
                     });
@@ -65,7 +70,19 @@ namespace WireHead.Commands
                             TerraCC.compile();
                         }
                         TerraCC.enable();
+                        Main.NewText("World compiled");
                     });
+                    break;
+                case "color":
+                case "col":
+                    if(args.Length >= 1 && args[1] == "t" || args[1] == "true" || args[1] == "e" || args[1] == "enable"){
+                        WireHead.colorPB = true;
+                    } else if(args.Length >= 1 && args[1] == "f" || args[1] == "false" || args[1] == "d" || args[1] == "disable"){
+                        WireHead.colorPB = false;
+                    } else {
+                        WireHead.colorPB = !WireHead.colorPB;
+                    }
+                    Main.NewText((WireHead.colorPB ? "Enabled" : "Disabled") + " colored pixel boxes");
                     break;
                 default:
                     throw new UsageException("cmd not recognized");
