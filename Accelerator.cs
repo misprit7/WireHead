@@ -192,7 +192,7 @@ internal static class Accelerator
                 toggleableDict[group].Add(new Point16(x, y));
             }
         }
-        else if (tile.TileType == TileID.PixelBox)
+        else if (tile.TileType == TileID.PixelBox || tile.TileType == Tiles.ColorPixelBox.ID)
         {
             for (int col = 0; col < colors; ++col)
             {
@@ -692,6 +692,28 @@ internal static class Accelerator
                 if(pb_states[i] == 0) continue;
                 Point16 p = uint2Point(pbId2Coord[i]);
                 TogglePixelBox(p.X, p.Y);
+            }
+        }
+    }
+
+    /*
+     * Converts all pixel boxes in the world to either color or monochrome
+     */
+    public static void convertPb(bool colored){
+        for (int x = 0; x < Main.maxTilesX; ++x)
+        {
+            for (int y = 0; y < Main.maxTilesY; ++y){
+                if(colored && Main.tile[x, y].TileType == TileID.PixelBox){
+                    WorldGen.KillTile(x, y, noItem: true);
+                    WorldGen.PlaceTile(x, y, Tiles.ColorPixelBox.ID, forced: true, mute: true);
+                    /*WorldGen.ReplaceTile(x, y, (ushort) coloredPbID, 0);*/
+                    Main.NewText("Replacing mono->col");
+                } else if(!colored && Main.tile[x, y].TileType == Tiles.ColorPixelBox.ID){
+                    WorldGen.KillTile(x, y, noItem: true);
+                    WorldGen.PlaceTile(x, y, TileID.PixelBox, forced: true, mute: true);
+                    /*WorldGen.ReplaceTile(x, y, (ushort) TileID.PixelBox, 0);*/
+                    Main.NewText("Replacing col->mono");
+                }
             }
         }
     }

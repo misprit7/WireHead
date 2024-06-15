@@ -14,7 +14,7 @@ namespace WireHead
 
         public static bool vanillaWiring = false;
         public static bool useTerracc = false;
-        public static bool colorPB = true;
+        public static bool colorPb = !vanillaWiring;
         public static ConcurrentQueue<Action> toExec = new ConcurrentQueue<Action>();
 
         private static void UpdateConnectedClients(Terraria.On_Netplay.orig_UpdateConnectedClients orig)
@@ -248,6 +248,7 @@ namespace WireHead
         public override void OnWorldLoad()
         {
             base.OnWorldLoad();
+            Accelerator.convertPb(WireHead.colorPb);
         }
 
         public override void PreSaveAndQuit()

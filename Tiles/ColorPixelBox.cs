@@ -8,6 +8,8 @@ namespace WireHead.Tiles
 {
 	public class ColorPixelBox : ModTile
 	{
+		// Probably a better way to do this but it saves a bunch of typing
+		public static int ID = ModContent.TileType<ColorPixelBox>();
 		public override void SetStaticDefaults()
 		{
 

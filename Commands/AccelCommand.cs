@@ -35,9 +35,11 @@ namespace WireHead.Commands
                         {
                             WireHead.AddEvents();
                             Accelerator.Preprocess();
+                            Accelerator.convertPb(WireHead.colorPb);
                             Main.NewText("WireHead enabled");
                         }
                         TerraCC.disable();
+                        Accelerator.convertPb(WireHead.colorPb);
                         Console.WriteLine("Traditional accelerator enabled");
                     });
                     break;
@@ -49,6 +51,7 @@ namespace WireHead.Commands
                             Accelerator.BringInSync();
                             WireHead.RemoveEvents();
                             TerraCC.disable();
+                            Accelerator.convertPb(false);
                             Main.NewText("WireHead disabled");
                         }
                         Console.WriteLine("Accelerator disabled");
@@ -75,14 +78,19 @@ namespace WireHead.Commands
                     break;
                 case "color":
                 case "col":
-                    if(args.Length >= 1 && args[1] == "t" || args[1] == "true" || args[1] == "e" || args[1] == "enable"){
-                        WireHead.colorPB = true;
-                    } else if(args.Length >= 1 && args[1] == "f" || args[1] == "false" || args[1] == "d" || args[1] == "disable"){
-                        WireHead.colorPB = false;
-                    } else {
-                        WireHead.colorPB = !WireHead.colorPB;
-                    }
-                    Main.NewText((WireHead.colorPB ? "Enabled" : "Disabled") + " colored pixel boxes");
+                    WireHead.toExec.Enqueue(() => {
+                        if(args.Length >= 1 && args[1] == "t" || args[1] == "true" || args[1] == "e" || args[1] == "enable"){
+                            WireHead.colorPb = true;
+                        } else if(args.Length >= 1 && args[1] == "f" || args[1] == "false" || args[1] == "d" || args[1] == "disable"){
+                            WireHead.colorPb = false;
+                        } else {
+                            WireHead.colorPb = !WireHead.colorPb;
+                        }
+                        if(!WireHead.vanillaWiring){
+                            Accelerator.convertPb(WireHead.colorPb);
+                        }
+                        Main.NewText((WireHead.colorPb ? "Enabled" : "Disabled") + " colored pixel boxes");
+                    });
                     break;
                 default:
                     throw new UsageException("cmd not recognized");
