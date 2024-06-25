@@ -248,7 +248,7 @@ namespace WireHead
         public override void OnWorldLoad()
         {
             base.OnWorldLoad();
-            Accelerator.convertPb(WireHead.colorPb);
+            /*Accelerator.convertPb(WireHead.colorPb);*/
         }
 
         public override void PreSaveAndQuit()

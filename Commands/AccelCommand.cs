@@ -35,11 +35,10 @@ namespace WireHead.Commands
                         {
                             WireHead.AddEvents();
                             Accelerator.Preprocess();
-                            Accelerator.convertPb(WireHead.colorPb);
+                            /*Accelerator.convertPb(WireHead.colorPb);*/
                             Main.NewText("WireHead enabled");
                         }
                         TerraCC.disable();
-                        Accelerator.convertPb(WireHead.colorPb);
                         Console.WriteLine("Traditional accelerator enabled");
                     });
                     break;
@@ -51,7 +50,7 @@ namespace WireHead.Commands
                             Accelerator.BringInSync();
                             WireHead.RemoveEvents();
                             TerraCC.disable();
-                            Accelerator.convertPb(false);
+                            /*Accelerator.convertPb(false);*/
                             Main.NewText("WireHead disabled");
                         }
                         Console.WriteLine("Accelerator disabled");
