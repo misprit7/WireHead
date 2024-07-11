@@ -18,4 +18,9 @@ Items: {
 		DisplayName: Trigger Staff
 		Tooltip: ""
 	}
+
+	ColorPixelBox: {
+		Tooltip: ""
+		DisplayName: Color Pixel Box
+	}
 }

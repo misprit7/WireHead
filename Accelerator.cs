@@ -26,6 +26,9 @@ internal static class Accelerator
     // is checking the same tile so for data locality it makes sense to do it this way
     public static int[,,] wireGroup;
 
+    // Indexed by group to contain what color each group is
+    public static int[] groupColor;
+
     // Copy of which wires are at each tile in a more usable form
     // Entries are bitmasks of 1<<color
     // i.e. red = 1, blue = 2, green = 4, yellow = 8
@@ -175,7 +178,8 @@ internal static class Accelerator
         // Junction boxes always have id -1
         // To avoid an infinite loop we ensure we pass through them one way
         // Since each junction box has exactly one entrance per channel and one exit this works
-        if (tile.TileType != TileID.WirePipe)
+        // However upon first traversal per color colored pbs get a group since we need to keep track, but this is done later
+        if (!IsJunction(x, y))
             wireGroup[x, y, c] = group;
 
         // Treat logic lamps specially since they mean different things based on frame
@@ -208,6 +212,19 @@ internal static class Accelerator
             }
 
         }
+        else if (tile.TileType == Tiles.ColorPixelBox.ID){
+            int g = wireGroup[x, y, c];
+            if (g != -1 && g != group){
+                uint coord = xy2uint(x, y);
+                pixelBoxes[g][group] = coord;
+                pixelBoxes[group][g] = coord;
+                pbId2Coord.Add(coord);
+                // There are at most 2 traversals, so we can just reset this to -1
+                wireGroup[x, y, c] = -1;
+            } else {
+                wireGroup[x, y, c] = group;
+            }
+        }
         else if (triggeredIDs.Contains(tile.TileType) || tile.HasActuator)
         {
             triggerableDict[group].Add(new Point16(x, y));
@@ -220,6 +237,11 @@ internal static class Accelerator
 
     /*
      * Find each of the wire groups in the world recursively, used for preprocessing
+     *
+     * Note: junction boxes are handled pretty elegantly
+     * Since they each have at most one entrance and one exit, there's no way to make a loop
+     * of junction boxes while also having a stray wire to initiate a DFS
+     * Therefore we don't have to check if we're re-traversing a junction
      */
     private static void FindGroup(int x, int y, int prevX, int prevY, int c, int group)
     {
@@ -228,22 +250,15 @@ internal static class Accelerator
 
         Tile tile = Main.tile[x, y];
 
-        // If we've already traversed this junction box with this group skip it
-        // If the junction box already has two groups skip it
         // If it isn't a junction box skip it if it's been traversed before
-        if (tile.TileType == TileID.WirePipe)
-        {
-            // Yes there's a logical simplification here with nested ifs but the logic is clearer this way
-            if (wireGroup[x, y, c] == group || wireGroup[x, y, c] == 0) return;
-        }
-        else if (wireGroup[x, y, c] != -1) return;
+        if (!IsJunction(x, y) && wireGroup[x, y, c] != -1) return;
 
         // Handle all registration of this tile to caches
         RegisterTile(x, y, c, group);
 
-        if (tile.TileType != TileID.WirePipe)
+        if (!IsJunction(x, y))
         {
-            bool prevJunction = Main.tile[prevX, prevY].TileType == TileID.WirePipe;
+            bool prevJunction = IsJunction(prevX, prevY);
             // What 30 minutes of stackoverflow searching for marginally cleaner syntax gets you
             foreach (var (dx, dy) in new (int, int)[] { (1, 0), (0, 1), (-1, 0), (0, -1) })
             {
@@ -256,26 +271,39 @@ internal static class Accelerator
         else
         {
             int deltaX = 0, deltaY = 0;
-            switch (tile.TileFrameX)
-            {
-                case 0: // + shape
-                    deltaX = (x - prevX);
-                    deltaY = (y - prevY);
-                    break;
-                case 18: // // shape
-                    deltaX = -(y - prevY);
-                    deltaY = -(x - prevX);
-                    break;
-                case 36:// \\ shape
-                    deltaX = (y - prevY);
-                    deltaY = (x - prevX);
-                    break;
-                default:
-                    throw new UsageException("Junction box frame didn't line up to 0, 18 or 36");
+            if(tile.TileType == TileID.WirePipe){
+                switch (tile.TileFrameX)
+                {
+                    case 0: // + shape
+                        deltaX = (x - prevX);
+                        deltaY = (y - prevY);
+                        break;
+                    case 18: // // shape
+                        deltaX = -(y - prevY);
+                        deltaY = -(x - prevX);
+                        break;
+                    case 36:// \\ shape
+                        deltaX = (y - prevY);
+                        deltaY = (x - prevX);
+                        break;
+                    default:
+                        throw new UsageException("Junction box frame didn't line up to 0, 18 or 36");
+                }
             }
-
-                   FindGroup(x + deltaX, y + deltaY, x, y, c, group);
+            else
+            {
+                deltaX = (x - prevX);
+                deltaY = (y - prevY);
+            }
+            FindGroup(x + deltaX, y + deltaY, x, y, c, group);
         }
+    }
+
+    /*
+     * Checks if tile is a junction, i.e. junction box or coloredPB
+     */
+    private static bool IsJunction(int x, int y){
+        return Main.tile[x, y].TileType == TileID.WirePipe || Main.tile[x, y].TileType == Tiles.ColorPixelBox.ID;
     }
 
     /*
@@ -308,11 +336,42 @@ internal static class Accelerator
     /*
      * Toggles a pixel box
      */
-    private static void TogglePixelBox(int x, int y)
+    private static void TogglePb(int x, int y)
     {
         Tile tile = Main.tile[x, y];
         if (tile.TileFrameX == 0) tile.TileFrameX = 18;
         else if (tile.TileFrameX == 18) tile.TileFrameX = 0;
+        if (Main.netMode == NetmodeID.Server)
+        {
+            NetMessage.SendTileSquare(-1, x, y);
+        }
+    }
+
+    /*
+     * Toggles a colored pixel box
+     * cMask: bitmask of which colors to toggle
+     */
+    private static void ToggleColoredPb(int x, int y, int cMask)
+    {
+        Tile tile = Main.tile[x, y];
+
+        int state = (tile.TileFrameX / 18) + (((tile.TileFrameY / 18)) << 2);
+        // Toggles cth bit
+        state ^= cMask;
+        /*Main.NewText($"State: {state}, x: {tile.TileFrameX}, y: {tile.TileFrameY}, cMask: {cMask}");*/
+        SetColoredPb(x, y, (byte)state);
+
+    }
+
+    /*
+     * Sets colored pb to a specified state
+     */
+    private static void SetColoredPb(int x, int y, byte state)
+    {
+        Tile tile = Main.tile[x, y];
+
+        tile.TileFrameX = (short)(18 * (0b0011 & state));
+        tile.TileFrameY = (short)(18 * ((0b1100 & state) >> 2));
         if (Main.netMode == NetmodeID.Server)
         {
             NetMessage.SendTileSquare(-1, x, y);
@@ -497,7 +556,13 @@ internal static class Accelerator
                     if (pixelBoxes[group].ContainsKey((g)))
                     {
                         Point16 point = uint2Point(pixelBoxes[group][g]);
-                        TogglePixelBox(point.X, point.Y);
+                        if(Main.tile[point.X, point.Y].TileType == TileID.PixelBox){
+                            TogglePb(point.X, point.Y);
+                        } else if(Main.tile[point.X, point.Y].TileType == Tiles.ColorPixelBox.ID){
+                            if(groupColor[group] == groupColor[g]){
+                                ToggleColoredPb(point.X, point.Y, 1 << (colors - 1 - groupColor[g]));
+                            }
+                        }
                     }
                 }
             }
@@ -607,6 +672,7 @@ internal static class Accelerator
 
         int group = 0;
         numGroups = 1 << 10;
+        groupColor = new int[numGroups];
         groupState = new bool[numGroups];
         groupOutOfSync = new bool[numGroups];
         pixelBoxes = new Dictionary<int, uint>[numGroups];
@@ -618,15 +684,17 @@ internal static class Accelerator
                 {
                     if (wireGroup[x, y,c] == -1 &&
                         (wireCache[x, y] & (1<<c)) != 0 &&
-                        Main.tile[x, y].TileType != TileID.WirePipe)
+                        !IsJunction(x, y))
                     {
                         if(group >= numGroups)
                         {
                             numGroups *= 2;
+                            Array.Resize(ref groupColor, numGroups);
                             Array.Resize(ref groupState, numGroups);
                             Array.Resize(ref groupOutOfSync, numGroups);
                             Array.Resize(ref pixelBoxes, numGroups);
                         }
+                        groupColor[group] = c;
                         groupState[group] = false;
                         groupOutOfSync[group] = false;
 
@@ -672,7 +740,9 @@ internal static class Accelerator
         groupsTriggered = new int[numGroups];
 
         // Inverts pbId2Coord to a dictionary with inverse mapping
-        pbCoord2Id = pbId2Coord.Select((s, i) => new { s, i }).ToDictionary(x => x.s, x => x.i);
+        if (!WireHead.colorPb){
+            pbCoord2Id = pbId2Coord.Select((s, i) => new { s, i }).ToDictionary(x => x.s, x => x.i);
+        }
         numPb = pbId2Coord.Count();
         // Hardcoded default
         if(default_clock_coord.X < Main.maxTilesX && default_clock_coord.Y < Main.maxTilesY){
@@ -691,7 +761,29 @@ internal static class Accelerator
             for(int i = 0; i < numPb; ++i){
                 if(pb_states[i] == 0) continue;
                 Point16 p = uint2Point(pbId2Coord[i]);
-                TogglePixelBox(p.X, p.Y);
+                TogglePb(p.X, p.Y);
+            }
+        }
+    }
+
+    /*
+     * Converts all pixel boxes in the world to either color or monochrome
+     */
+    public static void convertPb(bool colored){
+        for (int x = 0; x < Main.maxTilesX; ++x)
+        {
+            for (int y = 0; y < Main.maxTilesY; ++y){
+                if(colored && Main.tile[x, y].TileType == TileID.PixelBox){
+                    WorldGen.KillTile(x, y, noItem: true);
+                    WorldGen.PlaceTile(x, y, Tiles.ColorPixelBox.ID, forced: true, mute: true);
+                    /*WorldGen.ReplaceTile(x, y, (ushort) coloredPbID, 0);*/
+                    Main.NewText("Replacing mono->col");
+                } else if(!colored && Main.tile[x, y].TileType == Tiles.ColorPixelBox.ID){
+                    WorldGen.KillTile(x, y, noItem: true);
+                    WorldGen.PlaceTile(x, y, TileID.PixelBox, forced: true, mute: true);
+                    /*WorldGen.ReplaceTile(x, y, (ushort) TileID.PixelBox, 0);*/
+                    Main.NewText("Replacing col->mono");
+                }
             }
         }
     }
