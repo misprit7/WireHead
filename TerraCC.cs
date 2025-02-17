@@ -90,7 +90,7 @@ internal static class TerraCC
                 int g2 = entry.Key;
                 ret += $"case {g2}:\n";
                 /* ret += "printf(\"Toggling pixel box, state %d\\n\", pb_s[0]);\n"; */
-                ret += $"tog(pb_s[{Accelerator.pbCoord2Id[entry.Value]}]);\n";
+                ret += $"tog(pb_s[{entry.Value}]);\n";
                 ret += "break;\n";
             }
 
@@ -445,7 +445,7 @@ int main(void){{
             // Handle the error here or throw an exception if needed
             Console.WriteLine($"Error occurred. Exit code: {process.ExitCode}");
             Console.WriteLine($"Error message: {error}");
-            throw new InvalidOperationException("Compiling Failed!");
+            throw new InvalidOperationException($"Compiling failed with exit code {process.ExitCode} : {error}");
         }
     }
 

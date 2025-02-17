@@ -52,16 +52,6 @@ internal static class Accelerator
     public static uint[][] toggleable;
     public static uint[][] triggerable;
 
-    // For each group, contains all other groups that could make a pixel box trigger
-    // Assumes that each pair of 2 groups only attaches to one pixel box
-    // If you wanted to remove this assumtion it should be a list of (int, uints) instead
-    public static Dictionary<int, uint>[] pixelBoxes;
-    // Conversion between pixel box ids and coordinates
-    public static List<uint> pbId2Coord;
-    public static Dictionary<uint, int> pbCoord2Id;
-    // Number of pixel boxes
-    public static int numPb = 0;
-
     // Number of total groups
     // All arrays indexed by groups are guaranteed to be of this size
     public static int numGroups = 0;
@@ -76,6 +66,21 @@ internal static class Accelerator
     // Number of new groups in toHit
     public static int numToHit = 0;
 
+    /**********************************************************************
+     * Pixel Box Variables
+     *********************************************************************/
+
+    // For each group, contains all other groups that could make a pixel box trigger mapped to the
+    // pb id of that pair
+    // Assumes that each pair of 2 groups only attaches to one pixel box
+    // If you wanted to remove this assumtion it should be a list of (int, uints) instead
+    public static Dictionary<int, int>[] pixelBoxes;
+    // Conversion between pixel box ids and coordinates
+    public static List<uint> pbId2Coord;
+    // Conversion between colored pixel box ids and wire color. For regular pixel boxes this is -1
+    public static List<int> pbId2Color;
+    // Number of pixel boxes
+    public static int numPb = 0;
     
     /**********************************************************************
      * Monitor Variables
@@ -205,9 +210,10 @@ internal static class Accelerator
                 if (g != -1)
                 {
                     uint coord = xy2uint(x, y);
-                    pixelBoxes[g][group] = coord;
-                    pixelBoxes[group][g] = coord;
+                    pixelBoxes[g][group] = pbId2Coord.Count();
+                    pixelBoxes[group][g] = pbId2Coord.Count();
                     pbId2Coord.Add(coord);
+                    pbId2Color.Add(-1);
                 }
             }
 
@@ -216,9 +222,10 @@ internal static class Accelerator
             int g = wireGroup[x, y, c];
             if (g != -1 && g != group){
                 uint coord = xy2uint(x, y);
-                pixelBoxes[g][group] = coord;
-                pixelBoxes[group][g] = coord;
+                pixelBoxes[g][group] = pbId2Coord.Count();
+                pixelBoxes[group][g] = pbId2Coord.Count();
                 pbId2Coord.Add(coord);
+                pbId2Color.Add(c);
                 // There are at most 2 traversals, so we can just reset this to -1
                 wireGroup[x, y, c] = -1;
             } else {
@@ -353,6 +360,7 @@ internal static class Accelerator
      */
     private static void ToggleColoredPb(int x, int y, int cMask)
     {
+        Console.WriteLine($"{x} {y} {cMask}");
         Tile tile = Main.tile[x, y];
 
         int state = (tile.TileFrameX / 18) + (((tile.TileFrameY / 18)) << 2);
@@ -555,7 +563,7 @@ internal static class Accelerator
                     int g = groupsTriggered[i];
                     if (pixelBoxes[group].ContainsKey((g)))
                     {
-                        Point16 point = uint2Point(pixelBoxes[group][g]);
+                        Point16 point = uint2Point(pbId2Coord[pixelBoxes[group][g]]);
                         if(Main.tile[point.X, point.Y].TileType == TileID.PixelBox){
                             TogglePb(point.X, point.Y);
                         } else if(Main.tile[point.X, point.Y].TileType == Tiles.ColorPixelBox.ID){
@@ -644,6 +652,7 @@ internal static class Accelerator
         toggleableDict = new Dictionary<int, HashSet<Point16>>();
         triggerableDict = new Dictionary<int, HashSet<Point16>>();
         pbId2Coord = new List<uint>();
+        pbId2Color = new List<int>();
 
         toHit = new int[maxTriggers, colors];
 
@@ -675,7 +684,7 @@ internal static class Accelerator
         groupColor = new int[numGroups];
         groupState = new bool[numGroups];
         groupOutOfSync = new bool[numGroups];
-        pixelBoxes = new Dictionary<int, uint>[numGroups];
+        pixelBoxes = new Dictionary<int, int>[numGroups];
         for (int x = 0; x < Main.maxTilesX; ++x)
         {
             for (int y = 0; y < Main.maxTilesY; ++y)
@@ -700,7 +709,7 @@ internal static class Accelerator
 
                         toggleableDict[group] = new HashSet<Point16>();
                         triggerableDict[group] = new HashSet<Point16>();
-                        pixelBoxes[group] = new Dictionary<int, uint>();
+                        pixelBoxes[group] = new Dictionary<int, int>();
                         // Guaranteed not to start on junction box so don't care about prevX,Y
                         FindGroup(x, y, x, y, c, group);
                         ++group;
@@ -739,10 +748,6 @@ internal static class Accelerator
         triggerableDict.Clear();
         groupsTriggered = new int[numGroups];
 
-        // Inverts pbId2Coord to a dictionary with inverse mapping
-        if (!WireHead.colorPb){
-            pbCoord2Id = pbId2Coord.Select((s, i) => new { s, i }).ToDictionary(x => x.s, x => x.i);
-        }
         numPb = pbId2Coord.Count();
         // Hardcoded default
         if(default_clock_coord.X < Main.maxTilesX && default_clock_coord.Y < Main.maxTilesY){
@@ -761,7 +766,13 @@ internal static class Accelerator
             for(int i = 0; i < numPb; ++i){
                 if(pb_states[i] == 0) continue;
                 Point16 p = uint2Point(pbId2Coord[i]);
-                TogglePb(p.X, p.Y);
+                Tile tile = Main.tile[p.X, p.Y];
+                if (tile.TileType == TileID.PixelBox){
+                    TogglePb(p.X, p.Y);
+                } else if (tile.TileType == Tiles.ColorPixelBox.ID){
+                    Console.WriteLine($"{p.X}, {p.Y} {pbId2Color[i]}");
+                    ToggleColoredPb(p.X, p.Y, 1 << (colors - 1 - pbId2Color[i]));
+                }
             }
         }
     }
