@@ -72,38 +72,74 @@ internal static class TerraCC
 
     /**
      * String representing triggering a pixel box trigger
+     * Also writes helper files to interface with
      */
     private static string pb_str(){
         string ret = "";
 
-        ret += "switch(trig[i]){\n";
+        // pb_pairs: group1, group2, pbid
 
+        // If I had easy access to a hash set this should really be O(1) set inclusion but whatever
+        ret += $@"
+int j = 0;
+int g = trig[i];
+while(pb_pairs[g][j][0] != -1){{
+    printf(""Anotherpb\n"");
+    for(int k = i+1; k < num_trig; ++k){{
+        if(trig[k] == pb_pairs[g][j][0]){{
+            tog(pb_s[pb_pairs[g][j][1]]);
+        }}
+    }}
+    ++j;
+}}
+";
+
+        // pb_pairs data
+        StringBuilder pb_pairs_data = new StringBuilder();
         for(int g1 = 0; g1 < Accelerator.numGroups; ++g1){
-            var pb_dict = Accelerator.pixelBoxes[g1];
-            if(pb_dict.Count == 0) continue;
-
-            ret += $"case {g1}:\n";
-            ret += "for(int j = i+1; j < num_trig; ++j){\n";
-            ret += "switch(trig[j]){\n";
-
-            foreach(var entry in pb_dict){
-                int g2 = entry.Key;
-                ret += $"case {g2}:\n";
-                /* ret += "printf(\"Toggling pixel box, state %d\\n\", pb_s[0]);\n"; */
-                ret += $"tog(pb_s[{entry.Value}]);\n";
-                ret += "break;\n";
+            pb_pairs_data.Append("{\n");
+            foreach(var (g2, pbid) in Accelerator.pixelBoxes[g1]){
+                pb_pairs_data.Append($"{{{g2},{pbid}}},\n");
             }
-
-            ret += "}\n}\nbreak;\n";
+            pb_pairs_data.Append("{-1,-1},\n");
+            pb_pairs_data.Append("},\n");
         }
+
+
+        write_file("pb_pairs_data.txt", pb_pairs_data.ToString());
+
+        return ret;
+
+
+        /* ret += "switch(trig[i]){\n"; */
+
+        /* for(int g1 = 0; g1 < Accelerator.numGroups; ++g1){ */
+        /*     var pb_dict = Accelerator.pixelBoxes[g1]; */
+        /*     if(pb_dict.Count == 0) continue; */
+
+        /*     ret += $"case {g1}:\n"; */
+        /*     ret += "for(int j = i+1; j < num_trig; ++j){\n"; */
+        /*     ret += "switch(trig[j]){\n"; */
+
+        /*     foreach(var entry in pb_dict){ */
+        /*         int g2 = entry.Key; */
+        /*         ret += $"case {g2}:\n"; */
+        /*         /1* ret += "printf(\"Toggling pixel box, state %d\\n\", pb_s[0]);\n"; *1/ */
+        /*         ret += $"tog(pb_s[{entry.Value}]);\n"; */
+        /*         ret += "break;\n"; */
+        /*     } */
+
+        /*     ret += "}\n}\nbreak;\n"; */
+        /* } */
         
-        ret += "}\n";
+        /* ret += "}\n"; */
 
         return ret;
     }
 
     /*
      * String representing what to do for each possible group
+     * Also writes helper files to interface with since I hate myself and love side effects
      */
     private static string faulty_str(){
         StringBuilder ret = new StringBuilder();
@@ -260,6 +296,8 @@ static bool s[num_groups] = {{{string.Join(", ", Accelerator.groupState.Take(Acc
 
 // Pixel boxes
 static bool pb_s[num_pb] = {{0}};
+// This is really space innefficient, could malloc for this instead
+static int pb_pairs[num_groups][200][2];
 
 // Clock monitor
 static int clock_group = {Accelerator.clockGroup};
@@ -300,6 +338,35 @@ void init(){{
         }}
     }}
     fclose(std_lamps_f);
+
+    FILE *pb_pairs_f = fopen(""/tmp/terracc/pb_pairs_data.txt"", ""r"");
+    if(pb_pairs_f == NULL){{
+        perror(""Failed to open pb_pairs_data.txt!"");
+        return;
+    }}
+    for(int i = 0; i < sizeof(pb_pairs)/sizeof(pb_pairs[0]); ++i){{
+        char line[10000];
+
+        // Gets first {{,
+        fgets(line, sizeof(line), pb_pairs_f);
+        if(line[0] != '{{'){{
+            printf(""Read format not as expected!"");
+        }}
+        // Gets data
+        fgets(line, sizeof(line), pb_pairs_f);
+
+        int j = 0;
+        while(sscanf(line, ""{{%d,%d}},"",
+                    &pb_pairs[i][j][0], &pb_pairs[i][j][1]) == 2){{
+            fgets(line, sizeof(line), pb_pairs_f);
+            ++j;
+        }}
+        // Data has been read so line should be }},
+        if(line[0] != '}}'){{
+            printf(""Read format not as expected!"");
+        }}
+    }}
+    fclose(pb_pairs_f);
 
     /* FILE *file; */
     /* char *filename = ""/tmp/test.txt""; */
@@ -408,6 +475,15 @@ int main(void){{
         }}
         printf(""\n"");
     }}
+
+    for(int i = 0; i < sizeof(pb_pairs) / sizeof(pb_pairs[0]); ++i){{
+        int j = 0;
+        while(pb_pairs[i][j][0] != -1){{
+            printf(""%d, %d\n"", pb_pairs[i][j][0], pb_pairs[i][j][1]);
+            ++j;
+        }}
+        printf(""\n"");
+    }}
 }}
 
 ";
@@ -419,7 +495,7 @@ int main(void){{
         // Create a ProcessStartInfo object
         ProcessStartInfo processInfo = new ProcessStartInfo(
             "gcc",
-            $"-fpic -shared -O1 -o {work_dir}{so_file_name} {work_dir}{c_file_name}"
+            $"-fpic -mcmodel=large -shared -O1 -o {work_dir}{so_file_name} {work_dir}{c_file_name}"
         );
         processInfo.RedirectStandardOutput = true;
         processInfo.RedirectStandardError = true;
@@ -480,7 +556,7 @@ int main(void){{
         init = Marshal.GetDelegateForFunctionPointer<InitDelegate>(init_ptr);
 
         WireHead.useTerracc = true;
-        Console.WriteLine("Reading in lamp data");
+        Console.WriteLine("Reading in external data");
         init();
         if(Accelerator.clockGroup != -1){
             set_clock(Accelerator.clockGroup);
