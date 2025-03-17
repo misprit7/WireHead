@@ -12,10 +12,13 @@ namespace WireHead.Commands
     {
         private static int offsetX, cellWidthX, cellGapX, cellsX, bankGapX, banksX;
         private static int offsetY, cellWidthY, cellGapY, cellsY, bankGapY, banksY;
+        private static bool alternatingX, alternatingY;
 
-        private static Regex configPattern = new(@"(?<offset>\d+)\+(?<cell_width>\d+)g(?<cell_gap>\d+)x(?<cells>\d+)g(?<bank_gap>\d+)x(?<banks>\d+)");
-        private static string configX = "46+2g3x1024g3185x2";
-        private static string configY = "421+1g4x32g156x12";
+        /* private static Regex configPattern = new(@"(?<offset>\d+)\+(?<cell_width>\d+)g(?<cell_gap>\d+)x(?<cells>\d+)g(?<bank_gap>\d+)x(?<banks>\d+)"); */
+        private static Regex configPattern = new(@"(?<offset>\d+)\+(?<cell_width>\d+)g(?<cell_gap>\d+)(?<alternating>a)?x(?<cells>\d+)g(?<bank_gap>\d+)x(?<banks>\d+)");
+        /* private static string configX = "46+2g3x1024g3185x2"; */
+        private static string configX = "2853+1g1ax8192g0x1";
+        private static string configY = "1143+1g3x32g131x24";
 
         private static void PrintSuccess(string msg)
         {
@@ -32,6 +35,7 @@ namespace WireHead.Commands
             offsetX = int.Parse(matchX.Groups["offset"].Value);
             cellWidthX = int.Parse(matchX.Groups["cell_width"].Value);
             cellGapX = int.Parse(matchX.Groups["cell_gap"].Value);
+            alternatingX = matchX.Groups["alternating"].Success;
             cellsX = int.Parse(matchX.Groups["cells"].Value);
             bankGapX = int.Parse(matchX.Groups["bank_gap"].Value);
             banksX = int.Parse(matchX.Groups["banks"].Value);
@@ -39,6 +43,7 @@ namespace WireHead.Commands
             offsetY = int.Parse(matchY.Groups["offset"].Value);
             cellWidthY = int.Parse(matchY.Groups["cell_width"].Value);
             cellGapY = int.Parse(matchY.Groups["cell_gap"].Value);
+            alternatingY = matchY.Groups["alternating"].Success;
             cellsY = int.Parse(matchY.Groups["cells"].Value);
             bankGapY = int.Parse(matchY.Groups["bank_gap"].Value);
             banksY = int.Parse(matchY.Groups["banks"].Value);
@@ -50,18 +55,20 @@ namespace WireHead.Commands
             {
                 for (int bx = 0; bx < banksX; bx++)
                 {
-                    for (int cx = 0; cx < cellsX; cx++)
+                    for (int cxi = 0; cxi < cellsX; cxi++)
                     {
-                        for (int cy = 0; cy < cellsY; cy++)
+                        for (int cyi = 0; cyi < cellsY; cyi++)
                         {
                             for (int w = 0; w < (rep ? cellWidthX : 1); w++)
                             {
                                 for (int h = 0; h < (rep ? cellWidthY : 1); h++)
                                 {
+                                    int cx = alternatingX ? cxi + (cxi + 1)/2 : cxi;
+                                    int cy = alternatingY ? cyi + (cyi + 1)/2 : cyi;
                                     int x = offsetX + cx * cellGapX + bx * bankGapX + w;
                                     int y = offsetY + (cellsY - 1 - cy) * cellGapY + by * bankGapY + h;
 
-                                    f(x, y, bx * cellsX + by * cellsX * banksX + cx, cy);
+                                    f(x, y, bx * cellsX + by * cellsX * banksX + cxi, cyi);
                                 }
                             }
                         }
